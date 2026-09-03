@@ -290,6 +290,15 @@ def _constraint_status(site: SiteSpec, layout: LayoutResult | None) -> list[dict
             ),
         },
         {
+            "constraint": "road traversal",
+            "status": _road_traversal_status(site, layout),
+            "note": (
+                "Requested interior journeys are fail-closed for every retained stall."
+                if _road_traversal_status(site, layout) in {"active", "active_failed", "unsupported", "incomplete"}
+                else "Road traversal is not requested; existing validity is unchanged."
+            ),
+        },
+        {
             "constraint": "full aisle graph reachability",
             "status": _traffic_graph_status(layout),
             "note": (
@@ -562,6 +571,7 @@ def _field_support(site: SiteSpec, layout: LayoutResult | None) -> dict[str, str
         "constraints.dead_end_turnaround": "active" if _phase1_main_aisle_active(layout) else "future",
         "constraints.stall_to_aisle_association": "active" if _all_stalls_have_aisles(layout) else "future",
         "constraints.phase1_aisle_connectivity": "active" if _phase1_main_aisle_active(layout) else "future",
+        "constraints.road_traversal": _road_traversal_status(site, layout),
         "constraints.full_aisle_graph_reachability": _traffic_graph_status(layout),
         "constraints.maneuver_access_envelope": _maneuver_status(layout),
         "constraints.turning_sweep_proxy": _maneuver_status(layout),
@@ -695,6 +705,29 @@ def _site_constraint_status(layout: LayoutResult | None) -> str:
     if layout is None or not layout.site_constraint_validation:
         return "available"
     return "active" if layout.site_constraint_validation.get("valid", False) else "active_failed"
+
+
+def _road_traversal_status(site: SiteSpec, layout: LayoutResult | None) -> str:
+    from openparkcad.road_traversal_models import parse_traversal_policy
+
+    policy = parse_traversal_policy(site)
+    if not policy.requested:
+        return "not_requested"
+    if layout is None:
+        return "requested"
+    record = layout.road_traversal_validation if isinstance(layout.road_traversal_validation, dict) else {}
+    status = record.get("status")
+    if status == "passed" and record.get("valid") is True:
+        return "active"
+    if status == "unsupported":
+        return "unsupported"
+    if status == "incomplete":
+        return "incomplete"
+    if status == "failed":
+        return "active_failed"
+    if not record:
+        return "requested_not_executed"
+    return str(status or "requested")
 
 
 def _maneuvering_settings(site: SiteSpec) -> dict[str, Any]:

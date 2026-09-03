@@ -33,6 +33,11 @@ def main(argv: list[str] | None = None) -> int:
     solve_parser.add_argument("--out", default="output/layout.dxf", help="DXF output path")
     solve_parser.add_argument("--preview", default="output/layout.svg", help="SVG preview path")
     solve_parser.add_argument("--report", default="output/report.json", help="JSON report path")
+    solve_parser.add_argument(
+        "--diagnostics",
+        default=None,
+        help="Optional independent rejection diagnostics path used only when no official layout is published.",
+    )
 
     args = parser.parse_args(argv)
     if args.command == "solve":
@@ -66,7 +71,21 @@ def _solve(args: argparse.Namespace) -> int:
 
     validation_errors = _final_layout_errors(layout)
     if validation_errors:
-        return _error(f"no valid final layout: {'; '.join(validation_errors)}", exit_code=3)
+        diagnostics_error = None
+        if args.diagnostics:
+            try:
+                _write_rejection_diagnostics(
+                    layout,
+                    Path(args.diagnostics),
+                    validation_errors,
+                    official_paths=[Path(args.out), Path(args.preview), Path(args.report)],
+                )
+            except Exception as exc:
+                diagnostics_error = f"could not write diagnostics: {exc}"
+        message = f"no valid final layout: {'; '.join(validation_errors)}"
+        if diagnostics_error:
+            message = f"{message}; {diagnostics_error}"
+        return _error(message, exit_code=3)
 
     try:
         _write_output_set(
@@ -124,6 +143,7 @@ def _write_report(layout, path: str | Path) -> None:
         "maneuver_validation": layout.maneuver_validation,
         "site_constraint_validation": getattr(layout, "site_constraint_validation", {}),
         "engineering_validation": getattr(layout, "engineering_validation", {}),
+        "road_traversal_validation": getattr(layout, "road_traversal_validation", {}),
         "operational_quality": layout.operational_quality,
         "unsupported_phase1_inputs": layout.unsupported_phase1_inputs,
         "aisles": [
@@ -224,6 +244,12 @@ def _final_layout_errors(layout) -> list[str]:
         errors.append(
             f"operational quality hard rejection{f' (risk score {risk_score:g})' if isinstance(risk_score, int | float) else ''}"
         )
+
+    from openparkcad.road_traversal import road_traversal_publication_error
+
+    road_error = road_traversal_publication_error(layout)
+    if road_error:
+        errors.append(road_error)
     return errors
 
 
@@ -275,6 +301,33 @@ def _require_distinct_output_paths(paths: list[Path]) -> None:
     identities = [os.path.normcase(str(path.resolve())) for path in paths]
     if len(set(identities)) != len(identities):
         raise ValueError("DXF, SVG, and report output paths must be different")
+
+
+def _write_rejection_diagnostics(
+    layout,
+    path: Path,
+    validation_errors: list[str],
+    *,
+    official_paths: list[Path],
+) -> None:
+    _require_distinct_output_paths([*official_paths, path])
+    path.parent.mkdir(parents=True, exist_ok=True)
+    payload = {
+        "diagnostics_contract_version": "openparkcad-rejection-diagnostics-1",
+        "official_layout_published": False,
+        "errors": validation_errors,
+        "road_traversal_validation": getattr(layout, "road_traversal_validation", {}),
+        "engineering_validation": getattr(layout, "engineering_validation", {}),
+        "graph_validation": getattr(layout, "graph_validation", {}),
+        "maneuver_validation": getattr(layout, "maneuver_validation", {}),
+        "site_constraint_validation": getattr(layout, "site_constraint_validation", {}),
+        "stall_ids": [stall.id for stall in layout.stalls],
+        "aisle_ids": [aisle.id for aisle in layout.aisles],
+        "layout_identity": (layout.road_traversal_validation or {}).get("layout_identity")
+        if isinstance(getattr(layout, "road_traversal_validation", None), dict)
+        else None,
+    }
+    path.write_text(json.dumps(payload, indent=2), encoding="utf-8")
 
 
 def _temporary_sibling(target: Path, suffix: str) -> Path:

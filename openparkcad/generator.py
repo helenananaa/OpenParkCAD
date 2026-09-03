@@ -14,6 +14,7 @@ from openparkcad.phase1_support import phase1_unsupported_inputs
 from openparkcad.scoring import score_layout, score_total
 from openparkcad.contact_retarget import apply_contact_retarget
 from openparkcad.site_constraints import apply_contact_filter, validate_site_constraints
+from openparkcad.road_traversal import apply_road_traversal, road_traversal_satisfied
 from openparkcad.traffic_graph import build_traffic_graph, validate_traffic_graph
 
 
@@ -229,7 +230,7 @@ def _generate_layout_for_site(site: SiteSpec, *, context_sink: list | None = Non
             report["result_scope"] = "best_rejected_candidate"
             report["rejected_candidate_stall_count"] = best_operational_rejection.stall_count
             object.__setattr__(empty, "operational_quality", report)
-        return _with_score(_with_engineering_validation(empty))
+        return _with_score(_with_engineering_validation(apply_road_traversal(empty)))
 
     result = LayoutResult(
         # Prefer the candidate site so synthesized site_features (e.g. passing bays)
@@ -254,9 +255,10 @@ def _generate_layout_for_site(site: SiteSpec, *, context_sink: list | None = Non
         maneuver_validation=best.maneuver_validation,
         site_constraint_validation=best.site_constraint_validation,
         operational_quality=best.operational_quality,
+        road_traversal_validation=best.road_traversal_validation,
         unsupported_phase1_inputs=unsupported,
     )
-    return _with_score(_with_engineering_validation(result))
+    return _with_score(_with_engineering_validation(apply_road_traversal(result)))
 
 
 def _candidate_stalls(site: SiteSpec) -> tuple[StallSpec, ...]:
@@ -377,6 +379,7 @@ def _finalize_candidate(layout: LayoutResult) -> LayoutResult:
     filtered = apply_contact_filter(filtered)
     validated = _with_site_constraint_validation(_with_graph_validation(filtered))
     validated = _with_operational_quality(validated)
+    validated = apply_road_traversal(validated)
     return _with_score(_with_engineering_validation(validated))
 
 
@@ -392,6 +395,7 @@ def _layout_valid(layout: LayoutResult) -> bool:
         and _site_constraints_valid(layout)
         and _engineering_valid(layout)
         and _operational_valid(layout)
+        and _road_traversal_valid(layout)
     )
 
 
@@ -422,3 +426,7 @@ def _engineering_valid(layout: LayoutResult) -> bool:
 
 def _operational_valid(layout: LayoutResult) -> bool:
     return bool(layout.operational_quality.get("valid", False))
+
+
+def _road_traversal_valid(layout: LayoutResult) -> bool:
+    return road_traversal_satisfied(layout)

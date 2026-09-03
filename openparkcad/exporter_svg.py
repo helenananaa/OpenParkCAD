@@ -30,6 +30,11 @@ def write_svg(layout: LayoutResult, path: str | Path) -> None:
         all_points.extend(aisle["geometry"])
     for stall in _candidate_layout_preview_stalls(layout):
         all_points.extend(stall["geometry"])
+    from openparkcad.road_traversal import journey_trajectories
+
+    trajectory_traces = journey_trajectories(layout)
+    for _stall_id, points in trajectory_traces:
+        all_points.extend(points)
 
     min_x, min_y, max_x, max_y = bounds(all_points)
     padding = 3.0
@@ -148,6 +153,20 @@ def write_svg(layout: LayoutResult, path: str | Path) -> None:
             f'<text x="{cx:.3f}" y="{cy:.3f}" font-size="0.82" text-anchor="middle" '
             f'fill="#1e3a8a">{_xml_text(_display_stall_label(stall.id))}</text>'
         )
+    if trajectory_traces:
+        identity = ""
+        if isinstance(layout.road_traversal_validation, dict):
+            identity = str(layout.road_traversal_validation.get("layout_identity") or "")
+        parts.append(f'<g id="road-traversal" data-layout-identity="{_xml_attr(identity)}">')
+        for stall_id, points in trajectory_traces:
+            parts.append(
+                _polyline_svg(
+                    [tx(point) for point in points],
+                    "#7c3aed",
+                    0.12,
+                ).replace("<polyline", f'<polyline data-stall-id="{_xml_attr(stall_id)}"', 1)
+            )
+        parts.append("</g>")
     parts.append("</svg>")
 
     target.write_text("\n".join(parts), encoding="utf-8")

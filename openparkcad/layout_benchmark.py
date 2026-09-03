@@ -262,6 +262,7 @@ def extract_checks(layout: LayoutResult | None) -> dict[str, Any]:
             "site_quota": {"executed": False, "valid": None, "status": NOT_AVAILABLE},
             "engineering": {"executed": False, "valid": None, "status": NOT_AVAILABLE, "result_scope": None},
             "operational": {"executed": False, "valid": None, "status": NOT_AVAILABLE},
+            "road_traversal": {"executed": False, "valid": None, "status": NOT_AVAILABLE, "requested": None},
         }
 
     graph = layout.graph_validation if isinstance(layout.graph_validation, dict) else {}
@@ -326,6 +327,33 @@ def extract_checks(layout: LayoutResult | None) -> dict[str, Any]:
             "risk_score": operational.get("risk_score", NOT_AVAILABLE),
             "status": "executed" if "valid" in operational else NOT_AVAILABLE,
         },
+        "road_traversal": _extract_road_traversal_check(layout),
+    }
+
+
+def _extract_road_traversal_check(layout: LayoutResult) -> dict[str, Any]:
+    road = layout.road_traversal_validation if isinstance(layout.road_traversal_validation, dict) else {}
+    journeys = road.get("journeys") if isinstance(road.get("journeys"), list) else []
+    failures = road.get("failures") if isinstance(road.get("failures"), list) else []
+    stall_count = road.get("stall_count")
+    coverage = road.get("stall_coverage")
+    coverage_ratio = None
+    if isinstance(stall_count, int) and stall_count > 0 and isinstance(coverage, int):
+        coverage_ratio = coverage / stall_count
+    return {
+        "executed": bool(road.get("executed")),
+        "valid": road.get("valid") if "valid" in road else None,
+        "status": road.get("status"),
+        "requested": road.get("requested"),
+        "reason": road.get("reason"),
+        "stall_coverage": coverage if coverage is not None else NOT_AVAILABLE,
+        "stall_count": stall_count if stall_count is not None else NOT_AVAILABLE,
+        "coverage_ratio": coverage_ratio if coverage_ratio is not None else NOT_AVAILABLE,
+        "failure_reasons": [
+            item.get("reason") for item in failures if isinstance(item, dict) and item.get("reason")
+        ]
+        or [item.get("reason") for item in journeys if isinstance(item, dict) and item.get("reason") and item.get("valid") is not True],
+        "layout_identity": road.get("layout_identity"),
     }
 
 
@@ -440,6 +468,10 @@ def classify_expectation(case: dict[str, Any], outcome: str, payload: dict[str, 
         if outcome != "valid":
             return False
         return _required_checks_executed(case, checks)
+    if expectation == "invalid_with_required_checks":
+        if outcome != "invalid":
+            return False
+        return _required_checks_executed(case, checks)
     if expectation == "reject_vehicle_policy":
         if outcome != "invalid":
             return False
@@ -470,6 +502,7 @@ def _required_checks_executed(case: dict[str, Any], checks: dict[str, Any]) -> b
         "contact": "site_quota",
         "engineering": "engineering",
         "operational": "operational",
+        "road_traversal": "road_traversal",
     }
     for name in required:
         key = mapping.get(str(name), str(name))

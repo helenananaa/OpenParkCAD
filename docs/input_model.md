@@ -852,12 +852,23 @@ Constraints should include hard rules that invalidate a layout.
       "require_turning_radius_check": true,
       "require_swept_path_check": false,
       "max_reverse_distance": 12.0
+    },
+    "road_traversal": {
+      "enabled": false,
+      "scope": "site_interior",
+      "time_budget_seconds": 10.0
     }
   }
 }
 ```
 
-These requests are active in v0.3 for supported perpendicular-90 reverse-in,
+`constraints.road_traversal.enabled=true` requests a site-interior journey for
+every retained stall. Missing the block or `enabled=false` is `not_requested`
+and does not change existing validity. Official publication requires
+`status=passed` and `valid=true` together. See
+[the road-traversal contract](road_traversal_contract.md).
+
+These maneuvering requests are active in v0.3 for supported perpendicular-90 reverse-in,
 acute-angled reverse-in, parallel reverse S-curve, and T-end reverse-in stalls.
 A swept path or reverse-distance request also
 activates turning radius as a prerequisite for constructing/bounding the path;

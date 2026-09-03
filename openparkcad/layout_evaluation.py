@@ -27,6 +27,7 @@ from openparkcad.maneuver_validation import validate_maneuvers
 from openparkcad.models import LayoutResult
 from openparkcad.operational_quality import operational_quality_report
 from openparkcad.scoring import score_layout, score_total
+from openparkcad.road_traversal import apply_road_traversal, road_traversal_satisfied
 from openparkcad.site_constraints import validate_site_constraints
 from openparkcad.traffic_graph import build_traffic_graph, validate_traffic_graph
 
@@ -123,6 +124,7 @@ def _revalidate_candidate(layout: LayoutResult, candidate_id: str) -> LayoutResu
         site_constraint_validation=site_constraints,
         operational_quality=operational,
     )
+    validated = apply_road_traversal(validated, result_layout_id=candidate_id, source_layout_id=candidate_id)
     validated = replace(
         validated,
         engineering_validation=build_engineering_validation(validated, result_scope=f"candidate:{candidate_id}"),
@@ -149,6 +151,7 @@ def _checks(layout: LayoutResult | None) -> dict[str, Any]:
             "site_quota": {"executed": False, "valid": None},
             "engineering": {"executed": False, "valid": None},
             "operational": {"executed": False, "valid": None},
+            "road_traversal": {"executed": False, "valid": None, "status": None},
         }
     vehicle = (
         layout.maneuver_validation.get("vehicle_validation")
@@ -181,6 +184,13 @@ def _checks(layout: LayoutResult | None) -> dict[str, Any]:
         "operational": {
             "executed": "valid" in layout.operational_quality,
             "valid": layout.operational_quality.get("valid"),
+        },
+        "road_traversal": {
+            "executed": bool(layout.road_traversal_validation.get("executed")),
+            "valid": layout.road_traversal_validation.get("valid"),
+            "status": layout.road_traversal_validation.get("status"),
+            "requested": layout.road_traversal_validation.get("requested"),
+            "satisfied": road_traversal_satisfied(layout),
         },
         "score_total": score_total(layout) if layout.score else None,
     }

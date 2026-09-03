@@ -40,6 +40,11 @@ The solver can currently:
   parallel, and T-end stalls, or the supported perpendicular-90, acute-angled
   reverse-in, parallel reverse S-curve, and T-end reverse-in swept-path
   templates;
+- when `constraints.road_traversal.enabled` is true, require a site-interior
+  entrance-to-exit journey for every retained stall using finite forward road
+  templates plus the existing parking motions (`status=passed` and `valid=true`
+  together); missing, failed, unsupported, or incomplete evidence cannot be
+  published as passed;
 - enforce caller-declared accessible/EV minimum counts from explicit stall-type
   classifications;
 - compare stall types and main/branch stall assignments with an explainable
@@ -131,6 +136,24 @@ The bundled example deliberately enables promotion so the preview path remains
 exercised; other inputs must opt in explicitly.
 
 ## Validation modes and trust boundary
+
+Interior road-traversal checks are opt-in under `constraints.road_traversal`:
+
+```json
+{
+  "constraints": {
+    "road_traversal": {
+      "enabled": true,
+      "scope": "site_interior",
+      "time_budget_seconds": 10.0
+    }
+  }
+}
+```
+
+Unrequested solves keep the previous validity and official trio. `solve` accepts
+optional `--diagnostics` to write independent rejection evidence when no official
+layout is published. See [the road-traversal contract](docs/road_traversal_contract.md).
 
 Vehicle-level checks are opt-in under `constraints.maneuvering`:
 
@@ -239,6 +262,7 @@ on Python 3.10 and 3.12.
 - [Changelog](CHANGELOG.md)
 - [Current status and capability matrix](docs/current_status.md)
 - [Roadmap](docs/roadmap.md)
+- [Next five stages execution plan](docs/next_stages_execution_plan.md) (planned: road traversal, CAD input, interactive design, broader layouts, delivery)
 - [v0.4 benchmark and multi-spine execution plan](docs/v0_4_multi_spine_execution_plan.md) (E0–E9 implemented; §12 later)
 - [v0.4 multi-spine acceptance results](docs/v0_4_multi_spine_acceptance.md) (full regression, 240 benchmark runs, installed wheel, CI)
 - [Input model](docs/input_model.md)

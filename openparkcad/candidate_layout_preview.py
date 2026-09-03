@@ -277,6 +277,9 @@ def _validate_layout_preview(
         site_constraint_validation=site_constraints,
         operational_quality=operational,
     )
+    from openparkcad.road_traversal import apply_road_traversal, road_traversal_publication_error
+
+    validated_preview = apply_road_traversal(validated_preview, result_layout_id="candidate_preview")
     engineering = build_engineering_validation(validated_preview, result_scope="candidate_preview")
     association = _stall_association_validation(aisles, stalls)
     errors: list[str] = []
@@ -292,6 +295,8 @@ def _validate_layout_preview(
         errors.append("preview_layout_site_constraints_invalid")
     if not association["valid"]:
         errors.append("preview_layout_stall_association_invalid")
+    if road_traversal_publication_error(validated_preview):
+        errors.append("preview_layout_road_traversal_invalid")
     return {
         "version": "phase4c-1",
         "status": "preview_only",
@@ -304,6 +309,7 @@ def _validate_layout_preview(
         "engineering_validation": engineering,
         "operational_quality": operational,
         "traffic_graph": graph,
+        "road_traversal_validation": validated_preview.road_traversal_validation,
     }
 
 

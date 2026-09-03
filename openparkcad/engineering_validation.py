@@ -30,7 +30,11 @@ def build_engineering_validation(
     active, advisory = _declared_rule_records(layout, vehicle, site_constraints)
     unsupported = _unsupported_rule_records(layout)
     failed = _failed_rule_records(vehicle, site_constraints)
+    road = layout.road_traversal_validation if isinstance(layout.road_traversal_validation, dict) else {}
+    _apply_road_traversal_rules(road, active, unsupported, failed)
     valid = bool(vehicle.get("valid", False)) and bool(site_constraints.get("valid", False)) and not failed
+    if road.get("requested"):
+        valid = valid and road.get("status") == "passed" and road.get("valid") is True
 
     return {
         "version": ENGINEERING_VALIDATION_VERSION,
@@ -49,6 +53,7 @@ def build_engineering_validation(
             "vehicle": vehicle.get("version"),
             "site_constraints": site_constraints.get("version"),
             "maneuver": maneuver.get("version"),
+            "road_traversal": road.get("version"),
         },
         "rules": {
             "active": active,
@@ -60,7 +65,51 @@ def build_engineering_validation(
         "vehicle_validation": vehicle,
         "site_constraint_validation": site_constraints,
         "quota_validation": site_constraints.get("quota", {}),
+        "road_traversal_validation": road,
     }
+
+
+def _apply_road_traversal_rules(
+    road: dict[str, Any],
+    active: list[dict[str, Any]],
+    unsupported: list[dict[str, Any]],
+    failed: list[dict[str, Any]],
+) -> None:
+    if not road.get("requested"):
+        return
+    record = {
+        "id": "road.traversal",
+        "kind": "road_traversal",
+        "source": "constraints.road_traversal",
+        "authority": "project_policy",
+        "priority": "hard",
+        "scope": road.get("scope"),
+        "status": road.get("status"),
+        "reason": road.get("reason"),
+    }
+    status = road.get("status")
+    if status == "passed" and road.get("valid") is True:
+        record["status"] = "active"
+        active.append(record)
+        return
+    if status == "unsupported":
+        unsupported.append(record)
+        return
+    if status == "incomplete":
+        record["classification"] = "incomplete"
+        failed.append(record)
+        return
+    if not road:
+        failed.append(
+            {
+                "id": "road.traversal",
+                "kind": "road_traversal",
+                "status": "failed",
+                "reason": "requested road_traversal evidence is missing",
+            }
+        )
+        return
+    failed.append(record)
 
 
 def _declared_rule_records(

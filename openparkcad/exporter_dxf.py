@@ -58,6 +58,21 @@ def write_dxf(layout: LayoutResult, path: str | Path) -> None:
             ],
         )
         _add_text(msp, _centroid(stall.polygon), stall.id, "LABELS", height=0.45)
+    from openparkcad.road_traversal import journey_trajectories
+
+    for stall_id, points in journey_trajectories(layout):
+        if len(points) < 2:
+            continue
+        entity = _add_open_polyline(msp, points, "TRAJECTORIES")
+        if entity is not None:
+            entity.set_xdata(
+                "OPENPARKCAD",
+                [
+                    (1000, "road_traversal"),
+                    (1000, stall_id),
+                    (1000, (layout.road_traversal_validation or {}).get("layout_identity") or ""),
+                ],
+            )
 
     doc.saveas(target)
 
@@ -94,6 +109,7 @@ def _ensure_layers(doc) -> None:
         "AISLES_PASSING_BAY": 30,
         "STALLS": 5,
         "LABELS": 3,
+        "TRAJECTORIES": 6,
     }
     for name, color in layers.items():
         if name not in doc.layers:
@@ -104,9 +120,10 @@ def _add_polyline(msp, poly: Polygon, layer: str):
     return msp.add_lwpolyline(poly, close=True, dxfattribs={"layer": layer})
 
 
-def _add_open_polyline(msp, points: list[Point], layer: str) -> None:
+def _add_open_polyline(msp, points: list[Point], layer: str):
     if len(points) >= 2:
-        msp.add_lwpolyline(points, close=False, dxfattribs={"layer": layer})
+        return msp.add_lwpolyline(points, close=False, dxfattribs={"layer": layer})
+    return None
 
 
 def _add_text(msp, point: Point, text: str, layer: str, height: float) -> None:

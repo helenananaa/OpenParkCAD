@@ -411,7 +411,9 @@ def _publishable(layout: LayoutResult | None) -> bool:
         return False
     if not layout.operational_quality.get("valid", False):
         return False
-    return True
+    from openparkcad.road_traversal import road_traversal_satisfied
+
+    return road_traversal_satisfied(layout)
 
 
 def _evaluation_complete(evaluation: LayoutCandidateEvaluation) -> bool:
@@ -424,6 +426,13 @@ def _evaluation_complete(evaluation: LayoutCandidateEvaluation) -> bool:
     checks = evaluation.checks or {}
     for key in ("graph", "maneuver", "site_quota", "engineering", "operational"):
         block = checks.get(key) if isinstance(checks.get(key), dict) else {}
+        if not block.get("executed"):
+            return False
+    layout = evaluation.rebuilt_layout
+    from openparkcad.road_traversal_models import publication_requires_road_evidence
+
+    if layout is not None and publication_requires_road_evidence(layout.site):
+        block = checks.get("road_traversal") if isinstance(checks.get("road_traversal"), dict) else {}
         if not block.get("executed"):
             return False
     return True

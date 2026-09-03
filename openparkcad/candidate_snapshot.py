@@ -199,6 +199,8 @@ def _remap_id(raw: str | None, id_map: dict[str, str]) -> str | None:
 
 
 def _promoted_official_valid(layout: LayoutResult) -> bool:
+    from openparkcad.road_traversal import road_traversal_satisfied
+
     graph = layout.graph_validation if isinstance(layout.graph_validation, dict) else {}
     maneuver = layout.maneuver_validation if isinstance(layout.maneuver_validation, dict) else {}
     site = layout.site_constraint_validation if isinstance(layout.site_constraint_validation, dict) else {}
@@ -212,10 +214,13 @@ def _promoted_official_valid(layout: LayoutResult) -> bool:
         and site.get("valid")
         and engineering.get("valid")
         and operational.get("valid", True)
+        and road_traversal_satisfied(layout)
     )
 
 
 def _with_recomputed_validation(layout: LayoutResult) -> LayoutResult:
+    from openparkcad.road_traversal import apply_road_traversal
+
     maneuver = validate_maneuvers(layout)
     preview_validation = layout.candidate_layout_preview.get("validation", {})
     if isinstance(preview_validation, dict):
@@ -234,8 +239,13 @@ def _with_recomputed_validation(layout: LayoutResult) -> LayoutResult:
         site_constraint_validation=site_constraints,
         operational_quality=operational,
     )
+    validated = apply_road_traversal(validated, result_layout_id=_layout_identity_label(validated))
     validated = replace(validated, engineering_validation=build_engineering_validation(validated))
     return replace(validated, score=score_layout(validated))
+
+
+def _layout_identity_label(layout: LayoutResult) -> str:
+    return ",".join([aisle.id for aisle in layout.aisles] + [stall.id for stall in layout.stalls])
 
 
 def _official_stalls(stalls: list[ParkingStall]) -> list[ParkingStall]:

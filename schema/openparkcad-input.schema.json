@@ -142,6 +142,15 @@
           },
           "additionalProperties": true
         },
+        "road_traversal": {
+          "type": "object",
+          "properties": {
+            "enabled": {"type": "boolean"},
+            "scope": {"type": "string", "enum": ["site_interior"]},
+            "time_budget_seconds": {"type": "number", "exclusiveMinimum": 0, "default": 10.0}
+          },
+          "additionalProperties": false
+        },
         "accessible_route_touch_tolerance": {"type": "number", "minimum": 0},
         "emergency_route_touch_tolerance": {"type": "number", "minimum": 0},
         "ev_charger_touch_tolerance": {"type": "number", "minimum": 0}

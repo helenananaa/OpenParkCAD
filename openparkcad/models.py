@@ -199,6 +199,7 @@ class LayoutResult:
     maneuver_validation: dict[str, Any] = field(default_factory=dict)
     site_constraint_validation: dict[str, Any] = field(default_factory=dict)
     engineering_validation: dict[str, Any] = field(default_factory=dict)
+    road_traversal_validation: dict[str, Any] = field(default_factory=dict)
     operational_quality: dict[str, Any] = field(default_factory=dict)
     candidate_objects: list[CandidateObject] = field(default_factory=list)
     candidate_selection: dict[str, Any] = field(default_factory=dict)
@@ -236,6 +237,9 @@ def _phase0_site_from_dict(data: dict[str, Any]) -> SiteSpec:
     parking_data = _dict(data.get("parking", {}), "parking")
     aisles_data = _dict(data.get("aisles", {}), "aisles")
     constraints = _dict(data.get("constraints", {}), "constraints")
+    from openparkcad.road_traversal_models import parse_road_traversal_mapping
+
+    parse_road_traversal_mapping(constraints)
 
     boundary = _geometry_polygon(site_data["boundary"], "site.boundary")
     obstacle_setback = float(_dict(constraints.get("setbacks", {}), "constraints.setbacks").get("obstacle", 0.0))
