@@ -122,10 +122,16 @@ The project is suitable for:
 - DXF/SVG review by a knowledgeable human; and
 - developing stronger geometry, vehicle, and optimization layers.
 
+The [private surface-lot delivery profile](supported_delivery_scope.md) only
+claims checks the software actually runs. A delivery manifest can trace input
+digest, package version, rule profile, official layout, and output hashes.
+Human review is never auto-approved.
+
 It is not suitable for unattended production design, permit/code claims,
 construction output, or safety-critical acceptance. Those claims remain blocked
 by general vehicle-path coverage, permissioned real-site/human-CAD comparison,
 regional-rule, and product-integration work in the [roadmap](roadmap.md).
+Synthetic trials in this repository are not field-effect evidence.
 
 ## Verification baseline
 

@@ -56,6 +56,11 @@ def main(argv: list[str] | None = None) -> int:
         default=None,
         help="Optional review-bundle-1 JSON written with the official output set.",
     )
+    solve_parser.add_argument(
+        "--delivery-manifest",
+        default=None,
+        help="Optional delivery-manifest-1 JSON written with the official output set.",
+    )
 
     view_parser = subparsers.add_parser("view", help="Write an offline HTML viewer for a review bundle.")
     view_parser.add_argument("bundle", help="Path to a review-bundle-1 JSON file")
@@ -191,17 +196,42 @@ def _solve(args: argparse.Namespace) -> int:
             message = f"{message}; {diagnostics_error}"
         return _error(message, exit_code=3)
 
+    official_paths = [Path(args.out), Path(args.preview), Path(args.report)]
+    extra_paths: list[Path] = []
+    if args.review_bundle:
+        extra_paths.append(Path(args.review_bundle))
+    if args.delivery_manifest:
+        extra_paths.append(Path(args.delivery_manifest))
     try:
+        _require_distinct_output_paths([*official_paths, *extra_paths])
         _write_output_set(
             layout,
-            dxf_path=Path(args.out),
-            svg_path=Path(args.preview),
-            report_path=Path(args.report),
+            dxf_path=official_paths[0],
+            svg_path=official_paths[1],
+            report_path=official_paths[2],
             restore_source_coordinates=bool(getattr(args, "source_coordinates", False)),
-            review_bundle_path=Path(args.review_bundle) if args.review_bundle else None,
+            review_bundle_path=extra_paths[0] if args.review_bundle else None,
         )
     except Exception as exc:
         return _error(f"could not write outputs: {exc}", exit_code=4)
+
+    if args.delivery_manifest:
+        try:
+            from openparkcad.delivery_manifest import build_delivery_manifest
+
+            output_paths = {"dxf": official_paths[0], "svg": official_paths[1], "report": official_paths[2]}
+            if args.review_bundle:
+                output_paths["review_bundle"] = Path(args.review_bundle)
+            _write_json(
+                Path(args.delivery_manifest),
+                build_delivery_manifest(
+                    layout,
+                    input_bytes=site_path.read_bytes(),
+                    output_paths=output_paths,
+                ),
+            )
+        except Exception as exc:
+            return _error(f"could not write delivery manifest: {exc}", exit_code=4)
 
     print(f"site: {site.name}")
     print(f"stalls: {layout.stall_count}")
@@ -210,6 +240,8 @@ def _solve(args: argparse.Namespace) -> int:
     print(f"report: {args.report}")
     if args.review_bundle:
         print(f"review-bundle: {args.review_bundle}")
+    if args.delivery_manifest:
+        print(f"delivery-manifest: {args.delivery_manifest}")
     return 0
 
 

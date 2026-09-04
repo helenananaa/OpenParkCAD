@@ -111,7 +111,11 @@ strictness
 ```
 
 Important: until the project has verified rule libraries, standards should be
-metadata and default guidance, not a claim of legal compliance.
+metadata and default guidance, not a claim of legal compliance. The executable
+delivery profile `private_surface_lot_v1` (`rule-profile-1`) only names checks
+the software actually runs. Selecting it does not apply a jurisdiction code.
+Unknown profile ids fail closed. See
+[supported delivery scope](supported_delivery_scope.md).
 
 ## 4. Site Geometry
 
