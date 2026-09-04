@@ -51,12 +51,23 @@ def main(argv: list[str] | None = None) -> int:
         action="store_true",
         help="Write the DXF in recorded source CAD coordinates and units.",
     )
+    solve_parser.add_argument(
+        "--review-bundle",
+        default=None,
+        help="Optional review-bundle-1 JSON written with the official output set.",
+    )
+
+    view_parser = subparsers.add_parser("view", help="Write an offline HTML viewer for a review bundle.")
+    view_parser.add_argument("bundle", help="Path to a review-bundle-1 JSON file")
+    view_parser.add_argument("--out", required=True, help="Output HTML path")
 
     args = parser.parse_args(argv)
     if args.command == "solve":
         return _solve(args)
     if args.command == "import-dxf":
         return _import_dxf(args)
+    if args.command == "view":
+        return _view(args)
     raise ValueError(f"Unknown command: {args.command}")
 
 
@@ -108,6 +119,33 @@ def _write_json(path: Path, payload: dict[str, Any]) -> None:
     path.write_text(json.dumps(payload, indent=2), encoding="utf-8")
 
 
+def _write_review_bundle(layout, path: str | Path) -> None:
+    from openparkcad.review_bundle import build_review_bundle
+
+    _write_json(Path(path), build_review_bundle(layout, scope="official"))
+
+
+def _view(args: argparse.Namespace) -> int:
+    from openparkcad.viewer import write_review_html
+
+    bundle_path = Path(args.bundle)
+    out_path = Path(args.out)
+    try:
+        payload = json.loads(bundle_path.read_text(encoding="utf-8"))
+    except FileNotFoundError:
+        return _error(f"review bundle not found: {bundle_path}")
+    except json.JSONDecodeError as exc:
+        return _error(f"invalid review bundle JSON: {exc}")
+    if not isinstance(payload, dict) or payload.get("version") != "review-bundle-1":
+        return _error("review bundle version must be review-bundle-1")
+    try:
+        write_review_html(payload, out_path)
+    except Exception as exc:
+        return _error(f"could not write viewer: {exc}", exit_code=4)
+    print(f"viewer: {out_path}")
+    return 0
+
+
 def _solve(args: argparse.Namespace) -> int:
     site_path = Path(args.site)
     try:
@@ -137,11 +175,14 @@ def _solve(args: argparse.Namespace) -> int:
         diagnostics_error = None
         if args.diagnostics:
             try:
+                extra_paths = [Path(args.out), Path(args.preview), Path(args.report)]
+                if args.review_bundle:
+                    extra_paths.append(Path(args.review_bundle))
                 _write_rejection_diagnostics(
                     layout,
                     Path(args.diagnostics),
                     validation_errors,
-                    official_paths=[Path(args.out), Path(args.preview), Path(args.report)],
+                    official_paths=extra_paths,
                 )
             except Exception as exc:
                 diagnostics_error = f"could not write diagnostics: {exc}"
@@ -157,6 +198,7 @@ def _solve(args: argparse.Namespace) -> int:
             svg_path=Path(args.preview),
             report_path=Path(args.report),
             restore_source_coordinates=bool(getattr(args, "source_coordinates", False)),
+            review_bundle_path=Path(args.review_bundle) if args.review_bundle else None,
         )
     except Exception as exc:
         return _error(f"could not write outputs: {exc}", exit_code=4)
@@ -166,6 +208,8 @@ def _solve(args: argparse.Namespace) -> int:
     print(f"dxf: {args.out}")
     print(f"preview: {args.preview}")
     print(f"report: {args.report}")
+    if args.review_bundle:
+        print(f"review-bundle: {args.review_bundle}")
     return 0
 
 
@@ -324,6 +368,7 @@ def _write_output_set(
     report_path: Path,
     *,
     restore_source_coordinates: bool = False,
+    review_bundle_path: Path | None = None,
 ) -> None:
     def _dxf(current, path: str | Path) -> None:
         write_dxf(current, path, restore_source_coordinates=restore_source_coordinates)
@@ -333,6 +378,8 @@ def _write_output_set(
         (svg_path, write_svg),
         (report_path, _write_report),
     ]
+    if review_bundle_path is not None:
+        outputs.append((review_bundle_path, _write_review_bundle))
     _require_distinct_output_paths([target for target, _ in outputs])
 
     temporary_paths: dict[Path, Path] = {}
@@ -401,6 +448,10 @@ def _write_rejection_diagnostics(
         if isinstance(getattr(layout, "road_traversal_validation", None), dict)
         else None,
     }
+    if getattr(layout, "site", None) is not None:
+        from openparkcad.review_bundle import build_review_bundle
+
+        payload["review_bundle"] = build_review_bundle(layout, scope="diagnostics")
     path.write_text(json.dumps(payload, indent=2), encoding="utf-8")
 
 

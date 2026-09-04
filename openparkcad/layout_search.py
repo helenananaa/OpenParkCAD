@@ -606,11 +606,22 @@ def _candidate_summary(evaluation: LayoutCandidateEvaluation, retained: list[Lay
         "failure_class": evaluation.failure_class,
         "checks": evaluation.checks,
         "stall_count": evaluation.rebuilt_layout.stall_count if evaluation.rebuilt_layout is not None else None,
+        "geometry": _evaluation_geometry(evaluation),
+        "duration_seconds": evaluation.duration_seconds,
         "solver_provenance": dict(evaluation.provenance or {}),
         "selected_ids": list((evaluation.selection or {}).get("selected_ids") or []),
         "selected_branch_count": (evaluation.selection or {}).get("selected_branch_count"),
         "selected_connector_count": (evaluation.selection or {}).get("selected_connector_count"),
     }
+
+
+def _evaluation_geometry(evaluation: LayoutCandidateEvaluation) -> dict[str, Any]:
+    layout = evaluation.rebuilt_layout
+    if layout is None:
+        return {"aisles": [], "stalls": []}
+    from openparkcad.review_bundle import snapshot_candidate_geometry
+
+    return snapshot_candidate_geometry(layout)
 
 
 def _quality_delta(

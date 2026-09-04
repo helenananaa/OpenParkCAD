@@ -106,6 +106,14 @@ Convert a support-range DXF without solving:
 
 See [the CAD import contract](docs/cad_import_contract.md). Source DXF bytes are never modified. `--source-coordinates` writes the official DXF in recorded source units.
 
+Write a frozen comparison bundle and an offline viewer:
+
+```powershell
+.\.venv\Scripts\python.exe -m openparkcad solve examples/multi_spine_comparison_site.json `
+  --out layout.dxf --preview layout.svg --report report.json --review-bundle review-bundle.json
+.\.venv\Scripts\python.exe -m openparkcad view review-bundle.json --out review.html
+```
+
 The JSON report includes the selected layout and score, attempted candidates,
 input diagnostics, traffic-graph validation, maneuver/vehicle validation,
 `site_constraint_validation`, the versioned combined `engineering_validation`,

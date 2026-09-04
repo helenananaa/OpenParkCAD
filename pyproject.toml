@@ -43,8 +43,15 @@ build-backend = "setuptools.build_meta"
 include = ["openparkcad*"]
 exclude = ["examples*", "output*", "tests*"]
 
+[tool.setuptools.package-data]
+openparkcad = ["viewer_assets/*"]
+
 [tool.setuptools.data-files]
-"share/openparkcad/schema" = ["schema/openparkcad-input.schema.json"]
+"share/openparkcad/schema" = [
+  "schema/openparkcad-input.schema.json",
+  "schema/openparkcad-review.schema.json",
+  "schema/openparkcad-project.schema.json",
+]
 "share/openparkcad/fixtures/v0_3" = ["tests/fixtures/v0_3/*.json", "tests/fixtures/v0_3/README.md"]
 "share/doc/openparkcad" = ["CHANGELOG.md", "docs/v0.3_vehicle_and_constraints.md"]
 
