@@ -8,7 +8,7 @@ unfinished stages. Runtime behavior remains defined by
 
 - [x] N0：当前混合工作树、环境、质量和正式示例基线已保存。
 - [x] N1：2 个正例、2 个硬反例及来源/人工参考已冻结。
-- [ ] N2：RoadSkeleton 契约、稳定 ID、派生几何和 fail-closed 结构验证完成。
+- [x] N2：RoadSkeleton 契约、稳定 ID、派生几何和 fail-closed 结构验证完成。
 - [ ] N3：legacy adapter 覆盖现有主要道路族，默认结果无语义变化。
 - [ ] N4：parallel-ladder 独立候选生成和预筛完成。
 - [ ] N5：支持范围内的 junction movement 和完整道路通行完成。
@@ -72,4 +72,25 @@ git ls-files --others --exclude-standard
 - 性能：N1 targeted pytest 0.84s; rect/L solves completed in the N0 180 s ceiling.
 - 已知限制：all four cases are synthetic-only. `optimization.road_network` is documented in metadata, not a live public field until N8. Human-reference stall counts are not a KPI.
 - 回退验证：new files only; deleting them restores N0 behavior.
+- 是否满足退出条件：是
+
+### N2. RoadSkeleton 契约和基础验证
+
+- 状态：已完成
+- 源码身份：parent `1eb0d6da4635742ae73dfbc5416d9eb9958159c6`; user dirty files still unstaged.
+- 改动文件：`openparkcad/road_skeleton.py`, `openparkcad/road_skeleton_geometry.py`, `openparkcad/road_skeleton_validation.py`, `tests/test_road_skeleton.py`, `tests/test_road_skeleton_geometry.py`, this record.
+- 执行命令：
+
+```powershell
+./.venv/Scripts/python.exe -m ruff check openparkcad/road_skeleton.py openparkcad/road_skeleton_geometry.py openparkcad/road_skeleton_validation.py tests/test_road_skeleton.py tests/test_road_skeleton_geometry.py
+./.venv/Scripts/python.exe -m pytest tests/test_road_skeleton.py tests/test_road_skeleton_geometry.py -q
+```
+
+- 退出码和结果：ruff=0; pytest=0 (14 passed).
+- 证据目录：`output/verification/v0_5/20260904-165701-n2-skeleton/`. Scratch: `{SCRATCH}/n2/`.
+- 正例：canonical ID stable across process/order; centerline buffer does not fill a U-pocket; shared-node T without a movement does not allow a turn.
+- 反例：undeclared overlap, declared movement without contact, non-finite/empty/duplicate IDs, entrance mismatch, pavement outside driveable area.
+- 性能：targeted pytest 0.46s.
+- 已知限制：not imported by the generator; first versions are `road-skeleton-1` and `road-skeleton-geometry-1`.
+- 回退验证：delete the three new modules and two test files.
 - 是否满足退出条件：是
