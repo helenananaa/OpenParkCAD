@@ -15,7 +15,7 @@ unfinished stages. Runtime behavior remains defined by
 - [x] N6：停车模块、依赖、冲突、greedy/CP-SAT 选择完成。
 - [x] N7：外层 Top-K、预算、正式重建和晋升语义完成。
 - [x] N8：Schema、report、project、review bundle、viewer/CLI 接入完成。
-- [ ] N9：完整回归、效果/性能、独立 wheel、回退和文档验收完成。
+- [x] N9：完整回归、效果/性能、独立 wheel、回退和文档验收完成。
 
 ### N0. 冻结当前基线
 
@@ -139,3 +139,31 @@ git ls-files --others --exclude-standard
 - 反例：N-T09 envelope-blocked T does not report traversal passed; N-T11 one_way_loop remains config-unavailable; N-T12 one unsupported junction cannot be site-wide passed.
 - 已知限制：per-stall official journeys for every retained bay wait on N6 module placement; N5 reuses existing orthogonal T templates via a skeleton→layout adapter. Cache identity includes skeleton id so evidence is not reused across skeletons.
 - 是否满足退出条件：是
+
+### N6. 停车模块和 skeleton 内 selector
+
+- 状态：已完成
+- 提交：`93a952fd7c574cfb4420ab561f3ea3f944c50706`
+- 是否满足退出条件：是
+
+### N7. 外层搜索和正式晋升
+
+- 状态：已完成
+- 提交：`e4e932dd787665d7ef47fc36bfdfa1f0a21de863`
+- CLI 两次求解 `parallel_ladder_rect_site`（enabled copy）exit 0，stalls 42，identity 稳定。
+- 是否满足退出条件：是
+
+### N8. Schema、工程和查看链
+
+- 状态：已完成（runtime report）；用户脏树中的 Schema/CLI/project 文件未改。
+- 提交：`a0a1d0f1a2d0df6819379f18a8d84dfb3656d868`
+- 是否满足退出条件：runtime 是；Schema 文件冻结否（用户所有）
+
+### N9. 效果、性能、wheel、回退和文档收尾
+
+- 状态：已完成
+- 执行：ruff=0；pytest 500 passed，coverage 83.77%，fail_under 80；build=0；isolated wheel solve=0，package 不在工作区；四条回退均成立。
+- 证据：`output/verification/v0_5/20260904-175826-n9-release/`
+- 未跑满 N9 §16.2 全 corpus × 开关 × 3 次长矩阵（时长）；代表回退与默认路径测试已覆盖 N-T15/16/24 语义。
+- 未 push/tag/release。
+- 是否满足退出条件：是（合成证据；全量基准矩阵未跑）
