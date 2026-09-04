@@ -9,12 +9,17 @@ from openparkcad.diagnostic_geometry import pedestrian_emergency_shapes, site_fe
 from openparkcad.models import LayoutResult, Point, Polygon
 
 
-def write_dxf(layout: LayoutResult, path: str | Path) -> None:
+def write_dxf(layout: LayoutResult, path: str | Path, *, restore_source_coordinates: bool = False) -> None:
     target = Path(path)
     target.parent.mkdir(parents=True, exist_ok=True)
+    if restore_source_coordinates:
+        from openparkcad.cad_import import layout_in_source_coordinates
+
+        layout = layout_in_source_coordinates(layout)
 
     doc = ezdxf.new("R2010", setup=True)
-    doc.units = ezdxf.units.M
+    units = str(layout.site.units).strip().lower()
+    doc.units = ezdxf.units.MM if units in {"mm", "millimetre", "millimeter"} else ezdxf.units.M
     if "OPENPARKCAD" not in doc.appids:
         doc.appids.add("OPENPARKCAD")
     _ensure_layers(doc)

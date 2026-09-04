@@ -45,10 +45,33 @@ def write_svg(layout: LayoutResult, path: str | Path) -> None:
         x, y = point
         return (x - min_x + padding, max_y - y + padding)
 
+    cad_meta = layout.site.metadata.get("cad_import") if isinstance(layout.site.metadata, dict) else {}
+    cad_meta = cad_meta if isinstance(cad_meta, dict) else {}
+    transform = cad_meta.get("transform") if isinstance(cad_meta.get("transform"), dict) else {}
+    handles = cad_meta.get("source_handles") if isinstance(cad_meta.get("source_handles"), dict) else {}
+    svg_attrs = f'xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {width:.3f} {height:.3f}"'
+    if transform:
+        origin = transform.get("origin_m") or [0, 0]
+        svg_attrs += (
+            f' data-cad-units="{_xml_attr(transform.get("source_units", ""))}"'
+            f' data-cad-origin-m="{_xml_attr(origin[0])},{_xml_attr(origin[1])}"'
+            f' data-cad-scale="{_xml_attr(transform.get("scale", 1))}"'
+        )
+    boundary_attrs = {}
+    if handles.get("boundary"):
+        boundary_attrs["data-source-handle"] = str(handles["boundary"])
+        if transform.get("origin_m"):
+            boundary_attrs["data-source-origin-m"] = f"{transform['origin_m'][0]},{transform['origin_m'][1]}"
     parts = [
-        f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {width:.3f} {height:.3f}">',
+        f"<svg {svg_attrs}>",
         '<rect width="100%" height="100%" fill="#f8fafc"/>',
-        _polygon_svg([tx(point) for point in layout.site.boundary], "#ffffff", "#0f172a", 0.18),
+        _polygon_svg(
+            [tx(point) for point in layout.site.boundary],
+            "#ffffff",
+            "#0f172a",
+            0.18,
+            attributes=boundary_attrs or None,
+        ),
     ]
     for obstacle in layout.site.obstacles:
         parts.append(_polygon_svg([tx(point) for point in obstacle], "#fecaca", "#991b1b", 0.12))

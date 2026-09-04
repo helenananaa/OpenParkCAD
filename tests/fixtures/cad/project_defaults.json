@@ -1,0 +1,46 @@
+{
+  "version": "0.3",
+  "name": "cad-imported site",
+  "units": "m",
+  "parking": {
+    "stall_types": [
+      {
+        "id": "standard-90",
+        "family": "perpendicular",
+        "width": 2.5,
+        "length": 5.0,
+        "allowed_angles": [90]
+      }
+    ]
+  },
+  "aisles": {
+    "selection_mode": "fixed",
+    "fixed_class": "wide-two-way",
+    "classes": [
+      {
+        "id": "wide-two-way",
+        "width": 6.0,
+        "capacity": "two_vehicle",
+        "directionality": "two_way"
+      }
+    ]
+  },
+  "vehicles": {
+    "design_vehicle": {
+      "id": "passenger-car",
+      "length": 4.8,
+      "width": 1.9,
+      "wheelbase": 2.8,
+      "min_turning_radius": 5.5,
+      "turning_radius_reference": "outer_front_wheel",
+      "track_width": 1.6,
+      "front_overhang": 1.0,
+      "rear_overhang": 1.0,
+      "swept_path_margin": 0.3,
+      "max_reverse_distance": 12.0
+    }
+  },
+  "constraints": {
+    "setbacks": {"site_boundary": 0.0}
+  }
+}

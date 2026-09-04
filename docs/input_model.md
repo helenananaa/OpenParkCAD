@@ -115,7 +115,9 @@ metadata and default guidance, not a claim of legal compliance.
 
 ## 4. Site Geometry
 
-The site should support straight edges and curves.
+The site should support straight edges and curves. First-edition DXF import
+(`import-dxf`) only accepts closed straight modelspace polylines and directed
+LINE entrances; see [the CAD import contract](cad_import_contract.md).
 
 ### 4.1 Why Curves Matter
 

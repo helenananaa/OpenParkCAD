@@ -39,10 +39,73 @@ def main(argv: list[str] | None = None) -> int:
         help="Optional independent rejection diagnostics path used only when no official layout is published.",
     )
 
+    import_parser = subparsers.add_parser("import-dxf", help="Convert a support-range DXF into SiteSpec JSON without solving.")
+    import_parser.add_argument("dxf", help="Source DXF path")
+    import_parser.add_argument("--mapping", required=True, help="Layer and entrance-handle mapping JSON")
+    import_parser.add_argument("--defaults", required=True, help="Project defaults JSON (metres)")
+    import_parser.add_argument("--out", required=True, help="Output site JSON path")
+    import_parser.add_argument("--diagnostics", required=True, help="Import diagnostics JSON path")
+
+    solve_parser.add_argument(
+        "--source-coordinates",
+        action="store_true",
+        help="Write the DXF in recorded source CAD coordinates and units.",
+    )
+
     args = parser.parse_args(argv)
     if args.command == "solve":
         return _solve(args)
+    if args.command == "import-dxf":
+        return _import_dxf(args)
     raise ValueError(f"Unknown command: {args.command}")
+
+
+def _import_dxf(args: argparse.Namespace) -> int:
+    from openparkcad.cad_import import CadImportError, import_dxf_to_site, source_file_sha256
+
+    dxf_path = Path(args.dxf)
+    out_path = Path(args.out)
+    diagnostics_path = Path(args.diagnostics)
+    try:
+        _require_distinct_output_paths([out_path, diagnostics_path, dxf_path])
+    except ValueError as exc:
+        return _error(str(exc), exit_code=2)
+    before_hash = None
+    try:
+        before_hash = source_file_sha256(dxf_path)
+    except OSError as exc:
+        return _error(f"could not read DXF {dxf_path}: {exc}")
+    try:
+        site_json, diagnostics = import_dxf_to_site(dxf_path, args.mapping, args.defaults)
+    except FileNotFoundError as exc:
+        return _error(str(exc))
+    except CadImportError as exc:
+        try:
+            _write_json(diagnostics_path, exc.diagnostics)
+        except Exception as write_exc:
+            return _error(f"invalid DXF import: {exc}; could not write diagnostics: {write_exc}")
+        after_hash = source_file_sha256(dxf_path)
+        if after_hash != before_hash:
+            return _error("source DXF changed during a failed import", exit_code=4)
+        return _error(f"invalid DXF import: {exc}", exit_code=2)
+    except (KeyError, TypeError, ValueError, json.JSONDecodeError) as exc:
+        return _error(f"invalid import input: {exc}")
+    after_hash = source_file_sha256(dxf_path)
+    if after_hash != before_hash:
+        return _error("source DXF changed during import", exit_code=4)
+    try:
+        _write_json(out_path, site_json)
+        _write_json(diagnostics_path, diagnostics)
+    except Exception as exc:
+        return _error(f"could not write import outputs: {exc}", exit_code=4)
+    print(f"site: {out_path}")
+    print(f"diagnostics: {diagnostics_path}")
+    return 0
+
+
+def _write_json(path: Path, payload: dict[str, Any]) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(payload, indent=2), encoding="utf-8")
 
 
 def _solve(args: argparse.Namespace) -> int:
@@ -93,6 +156,7 @@ def _solve(args: argparse.Namespace) -> int:
             dxf_path=Path(args.out),
             svg_path=Path(args.preview),
             report_path=Path(args.report),
+            restore_source_coordinates=bool(getattr(args, "source_coordinates", False)),
         )
     except Exception as exc:
         return _error(f"could not write outputs: {exc}", exit_code=4)
@@ -253,9 +317,19 @@ def _final_layout_errors(layout) -> list[str]:
     return errors
 
 
-def _write_output_set(layout, dxf_path: Path, svg_path: Path, report_path: Path) -> None:
+def _write_output_set(
+    layout,
+    dxf_path: Path,
+    svg_path: Path,
+    report_path: Path,
+    *,
+    restore_source_coordinates: bool = False,
+) -> None:
+    def _dxf(current, path: str | Path) -> None:
+        write_dxf(current, path, restore_source_coordinates=restore_source_coordinates)
+
     outputs: list[tuple[Path, Callable[[Any, str | Path], None]]] = [
-        (dxf_path, write_dxf),
+        (dxf_path, _dxf),
         (svg_path, write_svg),
         (report_path, _write_report),
     ]

@@ -1,0 +1,22 @@
+{
+  "version": "cad-import-mapping-1",
+  "source_units": "m",
+  "layers": {
+    "boundary": "OPC_BOUNDARY",
+    "obstacles": [
+      "OPC_OBSTACLES"
+    ],
+    "entrances": "OPC_ENTRANCES"
+  },
+  "entrance_entities": [
+    {
+      "handle": "90",
+      "id": "ENTRY-1",
+      "width_m": 6.0,
+      "allowed_movements": [
+        "enter",
+        "exit"
+      ]
+    }
+  ]
+}
