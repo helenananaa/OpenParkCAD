@@ -70,7 +70,10 @@
     "road_traversal": {
       "enabled": true,
       "scope": "site_interior",
-      "time_budget_seconds": 10.0
+      "time_budget_seconds": 45.0
     }
+  },
+  "optimization": {
+    "enable_through_corridor": true
   }
 }

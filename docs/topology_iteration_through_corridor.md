@@ -22,6 +22,7 @@ unchanged.
 ## Exit
 
 The frozen dual-entrance site with the family enabled yields a valid official
-layout with road `status=passed` (or a documented remaining join failure).
+layout with road `status=passed`, `valid=true`, and `stall_coverage==stall_count`.
 Same-input comparison reports stall counts and road status with the family off
-versus on.
+versus on. The family does not publish an invalid layout merely because it has
+more stalls than the rejected baseline.

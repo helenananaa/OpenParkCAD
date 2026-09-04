@@ -8,6 +8,20 @@
   let current = 0;
   let view = { x: 0, y: 0, scale: 1 };
 
+  function escapeAttr(value) {
+    return String(value)
+      .replace(/&/g, "&amp;")
+      .replace(/"/g, "&quot;")
+      .replace(/'/g, "&#39;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;");
+  }
+  function escapeText(value) {
+    return String(value)
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;");
+  }
   function points(poly) {
     return (poly || []).map(function (p) { return p[0] + "," + p[1]; }).join(" ");
   }
@@ -34,7 +48,7 @@
     const tx = function (p) { return [(p[0] - b.minX + pad), (b.maxY - p[1] + pad)]; };
     const poly = function (arr, cls, extra) {
       const mapped = (arr || []).map(tx);
-      return '<polygon class="' + cls + '" points="' + points(mapped) + '" fill="none" stroke-width="0.12" ' + (extra || "") + "/>";
+      return '<polygon class="' + cls + '" points="' + points(mapped) + '" stroke-width="0.12" ' + (extra || "") + "/>";
     };
     let html = poly(bundle.site.boundary, "boundary", 'stroke="#0f172a" fill="#ffffff"');
     (bundle.site.obstacles || []).forEach(function (o) {
@@ -42,12 +56,12 @@
     });
     if (document.getElementById("layer-aisles").checked) {
       (candidate.geometry.aisles || []).forEach(function (a) {
-        html += poly(a.polygon, candidate.official ? "official" : "preview", 'data-object-id="' + (a.id || "") + '"');
+        html += poly(a.polygon, candidate.official ? "official" : "preview", 'data-object-id="' + escapeAttr(a.id || "") + '"');
       });
     }
     if (document.getElementById("layer-stalls").checked) {
       (candidate.geometry.stalls || []).forEach(function (s) {
-        html += poly(s.polygon, "stall", 'data-object-id="' + (s.id || "") + '" fill="#dbeafe" stroke="#1d4ed8"');
+        html += poly(s.polygon, "stall", 'data-object-id="' + escapeAttr(s.id || "") + '" fill="#dbeafe" stroke="#1d4ed8"');
       });
     }
     if (document.getElementById("layer-journeys").checked) {
@@ -57,13 +71,13 @@
           return tx([p.x, p.y]);
         });
         if (traj.length > 1) {
-          html += '<polyline class="journey" data-stall-id="' + (j.stall_id || "") + '" points="' + points(traj) + '" stroke-width="0.1"/>';
+          html += '<polyline class="journey" data-stall-id="' + escapeAttr(j.stall_id || "") + '" points="' + points(traj) + '" stroke-width="0.1"/>';
         }
       });
     }
     if (document.getElementById("layer-failures").checked) {
       (bundle.failures || []).forEach(function (f) {
-        html += '<text class="fail" x="2" y="2" font-size="1.2" data-object-id="' + (f.object_id || "") + '">' + (f.object_id || f.reason || "fail") + "</text>";
+        html += '<text class="fail" x="2" y="2" font-size="1.2" data-object-id="' + escapeAttr(f.object_id || "") + '">' + escapeText(f.object_id || f.reason || "fail") + "</text>";
       });
     }
     html += '<circle id="vehicle-marker" class="vehicle" r="0.4" visibility="hidden"/>';

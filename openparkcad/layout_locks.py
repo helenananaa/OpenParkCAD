@@ -2,12 +2,13 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass
-from typing import Any
+import math
+from dataclasses import dataclass, replace
+from typing import Any, Callable
 
 from shapely.geometry import Polygon as ShapelyPolygon
 
-from openparkcad.models import LayoutResult, ParkingAisle, ParkingStall
+from openparkcad.models import EntranceSpec, LayoutResult, ParkingAisle, ParkingStall, SiteSpec
 
 SUPPORTED_LOCK_KINDS = ("entrance", "main_aisle", "stall_group")
 _GEOM_TOLERANCE = 1e-6
@@ -68,9 +69,214 @@ def lock_from_aisle(aisle: ParkingAisle, *, lock_id: str | None = None) -> Layou
         kind="main_aisle",
         object_id=aisle.id,
         geometry=list(aisle.polygon),
+        heading_degrees=aisle.angle_degrees,
         directionality=aisle.directionality,
         project_object_id=aisle.id,
     )
+
+
+def lock_from_entrance(entrance: EntranceSpec, *, lock_id: str | None = None) -> LayoutLock:
+    return LayoutLock(
+        lock_id=lock_id or f"lock-entrance-{entrance.id}",
+        kind="entrance",
+        object_id=entrance.id,
+        geometry=[entrance.center],
+        heading_degrees=entrance.heading_degrees,
+        width=entrance.width,
+        project_object_id=entrance.id,
+    )
+
+
+def generation_locks_from_site(site: SiteSpec) -> list[LayoutLock]:
+    raw = (site.constraints or {}).get("generation_locks") or []
+    return [parse_lock(item) for item in raw]
+
+
+def site_with_generation_locks(site: SiteSpec, locks: list[LayoutLock]) -> SiteSpec:
+    constraints = dict(site.constraints or {})
+    constraints["generation_locks"] = [lock.to_record() for lock in locks]
+    return replace(site, constraints=constraints)
+
+
+def apply_entrance_locks(site: SiteSpec, locks: list[LayoutLock]) -> SiteSpec:
+    entrance_locks = {lock.object_id: lock for lock in locks if lock.kind == "entrance"}
+    if not entrance_locks:
+        return site
+    updated: list[EntranceSpec] = []
+    for entrance in site.entrances:
+        lock = entrance_locks.get(entrance.id)
+        if lock is None:
+            updated.append(entrance)
+            continue
+        center = lock.geometry[0] if lock.geometry else entrance.center
+        updated.append(
+            replace(
+                entrance,
+                center=center,
+                heading_degrees=lock.heading_degrees if lock.heading_degrees is not None else entrance.heading_degrees,
+                width=lock.width if lock.width is not None else entrance.width,
+            )
+        )
+    return replace(site, entrances=updated)
+
+
+def prepare_site_locks(site: SiteSpec, locks: list[LayoutLock] | None) -> tuple[SiteSpec, list[LayoutLock]]:
+    merged = list(locks or []) + generation_locks_from_site(site)
+    if not merged:
+        return site, []
+    prepared = site_with_generation_locks(apply_entrance_locks(site, merged), merged)
+    return prepared, merged
+
+
+def generate_with_locks(
+    site: SiteSpec,
+    locks: list[LayoutLock],
+    unconstrained: Callable[[SiteSpec], LayoutResult],
+    finalize: Callable[[LayoutResult], LayoutResult],
+) -> LayoutResult:
+    """Pin locked geometry while regenerating the rest; do not post-draw moved objects."""
+
+    main_lock = next((lock for lock in locks if lock.kind == "main_aisle"), None)
+    if main_lock is not None:
+        built = build_layout_from_main_lock(site, main_lock, locks)
+        if built is None:
+            return finalize(LayoutResult(site=site, stalls=[], aisles=[], generation_mode="locked_main_aisle"))
+        return finalize(built)
+    layout = unconstrained(site)
+    overlaid = overlay_locked_stalls(layout, locks)
+    if overlaid is layout:
+        return layout
+    return finalize(overlaid)
+
+
+def build_layout_from_main_lock(site: SiteSpec, main_lock: LayoutLock, locks: list[LayoutLock]) -> LayoutResult | None:
+    if not main_lock.geometry:
+        return None
+    from openparkcad.layout_geometry import available_area, polygon_points, turnaround_polygon
+    from openparkcad.phase1_candidates import place_main_family_stalls
+    from openparkcad.phase1_support import entry_capable_entrances
+    from openparkcad.road_transitions import aisle_centerline
+
+    entries = entry_capable_entrances(site)
+    if not entries:
+        return None
+    heading = main_lock.heading_degrees if main_lock.heading_degrees is not None else _heading_from_polygon(main_lock.geometry)
+    directionality = main_lock.directionality or "two_way"
+    main = ParkingAisle(
+        id=main_lock.object_id,
+        polygon=list(main_lock.geometry),
+        angle_degrees=heading,
+        role="main",
+        connected_to_entrance_id=entries[0].id,
+        connected_aisle_ids=("A-TURNAROUND",),
+        directionality=directionality,
+    )
+    centerline = aisle_centerline(main)
+    if centerline is None or centerline.length < site.aisle_width:
+        return None
+    start = centerline.interpolate(0.0, normalized=True)
+    geom_entrance = EntranceSpec(
+        id=entries[0].id,
+        mode=entries[0].mode,
+        center=(float(start.x), float(start.y)),
+        width=entries[0].width,
+        heading_degrees=heading,
+        allowed_movements=entries[0].allowed_movements,
+    )
+    usable = available_area(site)
+    start_u = site.aisle_width * 0.25
+    end_u = centerline.length - site.aisle_width * 0.25
+    stalls = place_main_family_stalls(
+        site,
+        site.main_stall or site.stall,
+        usable,
+        geom_entrance,
+        heading,
+        start_u,
+        end_u,
+        served_by_aisle_id=main.id,
+    )
+    turnaround = ParkingAisle(
+        id="A-TURNAROUND",
+        polygon=polygon_points(turnaround_polygon(site, geom_entrance, heading, centerline.length)),
+        angle_degrees=heading,
+        role="turnaround",
+        parent_aisle_id=main.id,
+        directionality=directionality,
+    )
+    layout = LayoutResult(
+        site=site,
+        stalls=stalls,
+        aisles=[main, turnaround],
+        generation_mode="locked_main_aisle",
+        main_entrance_id=entries[0].id,
+        selected_heading_degrees=heading,
+        selected_stall_type_id=site.stall.id,
+    )
+    return overlay_locked_stalls(layout, locks)
+
+
+def overlay_locked_stalls(layout: LayoutResult, locks: list[LayoutLock]) -> LayoutResult:
+    group_locks = [lock for lock in locks if lock.kind == "stall_group" and lock.geometry]
+    if not group_locks:
+        return layout
+    stalls = list(layout.stalls)
+    parent_id = layout.aisles[0].id if layout.aisles else None
+    for lock in group_locks:
+        if any(not _polygon_mismatch(lock.geometry, stall.polygon) for stall in stalls):
+            continue
+        stalls.append(
+            ParkingStall(
+                id=lock.object_id,
+                polygon=list(lock.geometry),
+                angle_degrees=0.0,
+                served_by_aisle_id=parent_id,
+                stall_type_id=lock.stall_type_id,
+            )
+        )
+    if stalls == layout.stalls:
+        return layout
+    return replace(layout, stalls=stalls)
+
+
+def lock_site_conflicts(layout: LayoutResult, locks: list[LayoutLock]) -> list[dict[str, Any]]:
+    from openparkcad.layout_geometry import available_area
+
+    conflicts: list[dict[str, Any]] = []
+    usable = available_area(layout.site)
+    for lock in locks:
+        if lock.kind not in {"main_aisle", "stall_group"} or not lock.geometry:
+            continue
+        try:
+            poly = ShapelyPolygon(lock.geometry)
+        except Exception:
+            continue
+        if poly.is_empty:
+            continue
+        leftover = poly.difference(usable)
+        if leftover.area > _GEOM_TOLERANCE:
+            conflicts.append(
+                {
+                    "lock_id": lock.lock_id,
+                    "reason": "locked_geometry_conflicts_with_site",
+                    "object_id": lock.object_id,
+                }
+            )
+    return conflicts
+
+
+def _heading_from_polygon(points: list[tuple[float, float]]) -> float:
+    best_length = -1.0
+    heading = 0.0
+    count = len(points)
+    for index in range(count):
+        start = points[index]
+        end = points[(index + 1) % count]
+        length = math.hypot(end[0] - start[0], end[1] - start[1])
+        if length > best_length:
+            best_length = length
+            heading = math.degrees(math.atan2(end[1] - start[1], end[0] - start[0]))
+    return heading
 
 
 def lock_from_stalls(stalls: list[ParkingStall], *, lock_id: str, project_object_id: str) -> LayoutLock:

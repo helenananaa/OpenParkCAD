@@ -9,7 +9,15 @@ from typing import Any, Callable
 
 from openparkcad.cli import _final_layout_errors
 from openparkcad.generator import generate_layout
-from openparkcad.layout_locks import LayoutLock, lock_from_aisle, lock_from_stalls, locks_satisfied, parse_lock
+from openparkcad.layout_locks import (
+    LayoutLock,
+    lock_from_aisle,
+    lock_from_entrance,
+    lock_from_stalls,
+    lock_site_conflicts,
+    locks_satisfied,
+    parse_lock,
+)
 from openparkcad.models import LayoutResult, site_from_dict
 from openparkcad.project_model import (
     ProjectRevision,
@@ -58,6 +66,16 @@ class ProjectService:
             self.last_accepted = layout
             self._push_history()
             return revision
+
+    def lock_entrance(self, entrance_id: str) -> LayoutLock:
+        if self.last_accepted is None:
+            raise ValueError("no accepted layout to lock")
+        entrance = next((item for item in self.last_accepted.site.entrances if item.id == entrance_id), None)
+        if entrance is None:
+            raise ValueError(f"entrance {entrance_id} not in accepted layout")
+        lock = lock_from_entrance(entrance)
+        self._append_lock(lock)
+        return lock
 
     def lock_main_aisle(self, aisle_id: str) -> LayoutLock:
         if self.last_accepted is None:
@@ -115,13 +133,14 @@ class ProjectService:
             if timeout_seconds is not None and timeout_seconds <= 0:
                 return TaskResult(revision=revision, input_digest=digest, status="timeout", layout=self.last_accepted, error="timeout")
             site = site_from_dict(site_payload)
-            layout = self._generate(site)
+            layout = self._invoke_generate(site, locks)
             if timeout_seconds is not None and time.perf_counter() - started > timeout_seconds:
                 return self._finish_if_current(revision, digest, TaskResult(revision=revision, input_digest=digest, status="timeout", layout=self.last_accepted, error="timeout"))
             if self._cancel.is_set():
                 return TaskResult(revision=revision, input_digest=digest, status="cancelled", layout=self.last_accepted)
             ok, conflicts = locks_satisfied(layout, locks)
-            if not ok:
+            conflicts = list(conflicts) + lock_site_conflicts(layout, locks)
+            if not ok or conflicts:
                 return self._finish_if_current(
                     revision,
                     digest,
@@ -201,6 +220,15 @@ class ProjectService:
         if errors:
             raise ValueError("; ".join(errors))
         return rebuilt
+
+    def _invoke_generate(self, site, locks: list[LayoutLock]):
+        try:
+            return self._generate(site, locks=locks)
+        except TypeError as exc:
+            message = str(exc)
+            if "locks" not in message and "unexpected keyword" not in message:
+                raise
+            return self._generate(site)
 
     def _append_lock(self, lock: LayoutLock) -> None:
         with self._lock:

@@ -15,7 +15,7 @@ def _dual(road: bool, through: bool) -> dict:
     data = json.loads(FROZEN.read_text(encoding="utf-8"))
     data.setdefault("constraints", {})
     if road:
-        data["constraints"]["road_traversal"] = {"enabled": True, "scope": "site_interior", "time_budget_seconds": 10.0}
+        data["constraints"]["road_traversal"] = {"enabled": True, "scope": "site_interior", "time_budget_seconds": 45.0}
     data.setdefault("optimization", {})
     data["optimization"]["enable_through_corridor"] = through
     return data
@@ -33,15 +33,14 @@ def test_k2_through_corridor_family_recovers_frozen_case() -> None:
     site = site_from_dict(_dual(road=True, through=True))
     assert through_corridor_enabled(site) is True
     layout = generate_layout(site)
-    assert layout.generation_mode == "phase1_through_corridor" or layout.stall_count > 0
+    assert layout.generation_mode == "phase1_through_corridor"
     assert layout.stall_count > 0
     road = layout.road_traversal_validation
     assert road.get("requested") is True
     assert road.get("executed") is True
-    assert road.get("status") in {"passed", "failed", "incomplete"}
-    if road.get("status") == "passed":
-        assert road.get("valid") is True
-        assert road.get("stall_coverage") == layout.stall_count
+    assert road.get("status") == "passed"
+    assert road.get("valid") is True
+    assert road.get("stall_coverage") == layout.stall_count
 
 
 def test_k3_k4_same_condition_comparison_reports_gain() -> None:

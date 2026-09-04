@@ -7,7 +7,8 @@ h1 { font-size: 1.1rem; margin: 0 0 0.25rem; }
 #details { padding: 0.75rem; overflow: auto; background: #1e293b; }
 #detail-text { white-space: pre-wrap; font-size: 0.8rem; }
 .fail { stroke: #dc2626; fill: #fecaca; }
-.official { stroke: #1d4ed8; }
-.preview { stroke: #ea580c; stroke-dasharray: 4 3; }
+.official { fill: none; stroke: #1d4ed8; pointer-events: stroke; }
+.preview { fill: none; stroke: #ea580c; stroke-dasharray: 4 3; pointer-events: stroke; }
+.stall { fill: #dbeafe; stroke: #1d4ed8; pointer-events: all; }
 .journey { stroke: #7c3aed; fill: none; }
 .vehicle { fill: #7c3aed; }

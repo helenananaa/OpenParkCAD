@@ -1,8 +1,10 @@
 from __future__ import annotations
 
-from openparkcad.layout_locks import lock_from_aisle, lock_from_stalls, locks_satisfied
-from openparkcad.models import LayoutResult, ParkingAisle, ParkingStall
+from openparkcad.generator import generate_layout
+from openparkcad.layout_locks import _polygon_mismatch, lock_from_aisle, lock_from_entrance, lock_from_stalls, locks_satisfied
+from openparkcad.models import LayoutResult, ParkingAisle, ParkingStall, site_from_dict
 from tests.road_traversal_support import through_layout
+from tests.test_cli_and_exporters import _valid_site_data
 
 
 def test_ut03_main_aisle_lock_keeps_geometry() -> None:
@@ -53,3 +55,19 @@ def test_ut05_project_object_id_does_not_follow_renumbered_official_id() -> None
     assert conflicts == []
     assert lock.project_object_id == "stable-group"
     assert lock.project_object_id != "P-999"
+
+
+def test_generate_layout_pins_locked_main_aisle_and_entrance() -> None:
+    site = site_from_dict(_valid_site_data())
+    layout = generate_layout(site)
+    main = next(aisle for aisle in layout.aisles if aisle.role == "main")
+    aisle_lock = lock_from_aisle(main)
+    entrance_lock = lock_from_entrance(layout.site.entrances[0])
+    pinned = generate_layout(site, locks=[aisle_lock, entrance_lock])
+    new_main = next(aisle for aisle in pinned.aisles if aisle.id == main.id or aisle.role == "main")
+    assert pinned.generation_mode == "locked_main_aisle"
+    assert _polygon_mismatch(aisle_lock.geometry, new_main.polygon) is False
+    assert new_main.directionality == main.directionality
+    assert pinned.site.entrances[0].heading_degrees == entrance_lock.heading_degrees
+    assert pinned.engineering_validation.get("valid") is True
+    assert pinned.stall_count > 0

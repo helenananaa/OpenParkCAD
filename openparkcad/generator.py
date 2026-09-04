@@ -32,7 +32,17 @@ def collect_layout_candidate_contexts(site: SiteSpec) -> list[LayoutCandidateCon
     return contexts
 
 
-def generate_layout(site: SiteSpec) -> LayoutResult:
+def generate_layout(site: SiteSpec, locks: list | None = None) -> LayoutResult:
+    from openparkcad.layout_locks import generate_with_locks, prepare_site_locks
+
+    prepared, merged = prepare_site_locks(site, locks)
+    if merged:
+        layout = generate_with_locks(prepared, merged, _unconstrained_generate, _finalize_candidate)
+        return attach_candidate_snapshot(_with_engineering_validation(layout))
+    return _unconstrained_generate(prepared)
+
+
+def _unconstrained_generate(site: SiteSpec) -> LayoutResult:
     from openparkcad.layout_search import read_layout_search, search_multi_spine
 
     config = read_layout_search(site)
