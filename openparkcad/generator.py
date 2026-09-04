@@ -69,6 +69,9 @@ def generate_layout_legacy(site: SiteSpec, *, context_sink: list | None = None) 
         )
         object.__setattr__(layout, "stall_type_attempts", [_stall_type_attempt(layout, selected=selected)])
         object.__setattr__(layout, "stall_assignment_attempts", [_stall_assignment_attempt(layout, selected=selected)])
+        from openparkcad.through_corridor import maybe_through_corridor
+
+        layout = maybe_through_corridor(selected_site, layout, _finalize_candidate, _layout_valid)
         return attach_candidate_snapshot(_with_engineering_validation(layout))
 
     layouts = [
@@ -80,6 +83,9 @@ def generate_layout_legacy(site: SiteSpec, *, context_sink: list | None = None) 
     ]
     valid_layouts = [layout for layout in layouts if _layout_valid(layout)]
     best = max(valid_layouts or layouts, key=score_total)
+    from openparkcad.through_corridor import maybe_through_corridor
+
+    best = maybe_through_corridor(best.site, best, _finalize_candidate, _layout_valid)
     best_is_valid = _layout_valid(best)
     selected_main = best.site.main_stall or best.site.stall
     selected_branch = best.site.branch_stall or selected_main
