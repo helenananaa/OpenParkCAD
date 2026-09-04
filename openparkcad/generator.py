@@ -47,8 +47,12 @@ def _unconstrained_generate(site: SiteSpec) -> LayoutResult:
 
     config = read_layout_search(site)
     if config.mode == "multi_spine":
-        return search_multi_spine(site, config)
-    return generate_layout_legacy(site)
+        layout = search_multi_spine(site, config)
+    else:
+        layout = generate_layout_legacy(site)
+    from openparkcad.road_network_search import apply_road_network_search
+
+    return apply_road_network_search(site, layout)
 
 
 def generate_layout_legacy(site: SiteSpec, *, context_sink: list | None = None) -> LayoutResult:
