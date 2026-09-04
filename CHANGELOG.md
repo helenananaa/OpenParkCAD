@@ -13,6 +13,14 @@ version alone, show whether a requested rule actually ran.
 
 ### Added
 
+- Opt-in `optimization.road_network` (`enabled`, `families`, `max_skeletons`,
+  `cross_aisle_policy`) generates a `parallel_ladder` RoadSkeleton family after
+  the current official baseline. Default remains off. Unknown families fail
+  closed. `allow_one_way_loop` stays unavailable. Reports may include
+  `layout_search.road_network_search` version `road-network-search-1`.
+  Synthetic-only; not a real-site or constructability claim.
+- Examples `examples/parallel_ladder_rect_site.json` and
+  `examples/parallel_ladder_l_site.json`.
 - Optional `optimization.layout_search` (`mode=legacy|multi_spine`, `top_k`,
   `refinement_budget_seconds`) compares complete main-aisle templates after the
   legacy baseline. Default remains `legacy`. Promotion is still the only switch
@@ -22,7 +30,7 @@ version alone, show whether a requested rule actually ran.
 - Optional `optimization.selector_num_workers` for CP-SAT; omitted keeps the
   OR-Tools default. CI has a Python 3.12 `.[dev,optimizer]` job.
 - Layout benchmark tools (`tools/benchmark_layouts.py`) and an explicit 20-case
-  manifest (`benchmarks/layout_v0_4.json`).
+  manifest (`benchmarks/layout_v0_4.json`, 22 explicit cases).
 - Example `examples/multi_spine_comparison_site.json`.
 - Multi-spine promotion preserves the winning selector decision and publishes
   consistent preview status, diagnostics, and preview-to-official aisle/stall

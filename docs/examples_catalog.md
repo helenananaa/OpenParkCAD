@@ -33,6 +33,8 @@ output set. See the [workspace guide](README.md) for local archive conventions.
 | `adaptive_dogleg_site.json` | Adaptive offsets past a wide center obstacle |
 | `passing_bay_narrow_site.json` | Narrow two-way + synthesized passing bays |
 | `multi_spine_comparison_site.json` | Two laterals + perp/angled families; multi_spine module rebuild promotes a higher official score |
+| `parallel_ladder_rect_site.json` | Synthetic wide rectangle frozen for opt-in `parallel_ladder` (N-T01 development) |
+| `parallel_ladder_l_site.json` | Synthetic L-shape frozen for opt-in `parallel_ladder` (N-T02 holdout) |
 
 DXF layers for circulation (v0.3 exporters):
 

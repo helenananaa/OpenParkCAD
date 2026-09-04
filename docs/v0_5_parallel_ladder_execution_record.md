@@ -12,9 +12,9 @@ unfinished stages. Runtime behavior remains defined by
 - [x] N3：legacy adapter 覆盖现有主要道路族，默认结果无语义变化。
 - [x] N4：parallel-ladder 独立候选生成和预筛完成。
 - [x] N5：支持范围内的 junction movement 和完整道路通行完成。
-- [ ] N6：停车模块、依赖、冲突、greedy/CP-SAT 选择完成。
-- [ ] N7：外层 Top-K、预算、正式重建和晋升语义完成。
-- [ ] N8：Schema、report、project、review bundle、viewer/CLI 接入完成。
+- [x] N6：停车模块、依赖、冲突、greedy/CP-SAT 选择完成。
+- [x] N7：外层 Top-K、预算、正式重建和晋升语义完成。
+- [x] N8：Schema、report、project、review bundle、viewer/CLI 接入完成。
 - [ ] N9：完整回归、效果/性能、独立 wheel、回退和文档验收完成。
 
 ### N0. 冻结当前基线

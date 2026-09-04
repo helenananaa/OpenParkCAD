@@ -67,10 +67,12 @@ def read_layout_search(site: SiteSpec) -> LayoutSearchConfig:
 
 def layout_search_report(layout: LayoutResult) -> dict[str, Any]:
     existing = getattr(layout, "layout_search", {}) or {}
-    if isinstance(existing, dict) and existing.get("version") == "layout-search-1":
+    if not isinstance(existing, dict):
+        existing = {}
+    if existing.get("version") == "layout-search-1":
         return dict(existing)
     config = read_layout_search(layout.site)
-    return {
+    report = {
         "version": "layout-search-1",
         "mode": config.mode if config.mode == "multi_spine" else "legacy",
         "status": "not_requested" if config.mode == "legacy" else "completed",
@@ -87,6 +89,9 @@ def layout_search_report(layout: LayoutResult) -> dict[str, Any]:
         },
         "quality_delta": None,
     }
+    if "road_network_search" in existing:
+        report["road_network_search"] = existing["road_network_search"]
+    return report
 
 
 def search_multi_spine(

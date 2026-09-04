@@ -292,6 +292,7 @@ on Python 3.10 and 3.12.
 - [Next five stages execution plan](docs/next_stages_execution_plan.md) (planned: road traversal, CAD input, interactive design, broader layouts, delivery)
 - [v0.4 benchmark and multi-spine execution plan](docs/v0_4_multi_spine_execution_plan.md) (E0–E9 implemented; §12 later)
 - [v0.4 multi-spine acceptance results](docs/v0_4_multi_spine_acceptance.md) (full regression, 240 benchmark runs, installed wheel, CI)
+- [v0.5 parallel-ladder acceptance](docs/v0_5_parallel_ladder_acceptance.md) (synthetic-only; default path unchanged)
 - [Input model](docs/input_model.md)
 - [v0.3 vehicle and enforced-constraint contract](docs/v0.3_vehicle_and_constraints.md)
 - [Algorithm design discussion](docs/algorithm_design_discussion.md)
