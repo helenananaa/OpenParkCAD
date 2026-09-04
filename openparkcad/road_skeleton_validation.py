@@ -273,9 +273,16 @@ def _undeclared_intersection_issues(
 ) -> list[SkeletonIssue]:
     issues: list[SkeletonIssue] = []
     segments = list(skeleton.segments)
+    declared = {
+        frozenset((movement.from_segment_id, movement.to_segment_id))
+        for movement in skeleton.movements
+        if movement.allowed
+    }
     for index, left in enumerate(segments):
         for right in segments[index + 1 :]:
             if _share_node(left, right):
+                continue
+            if frozenset((left.id, right.id)) in declared:
                 continue
             overlap = polygons[left.id].intersection(polygons[right.id])
             if overlap.is_empty or overlap.area <= 1e-4:
@@ -328,9 +335,18 @@ def _isolated_component_issues(skeleton: RoadSkeleton) -> list[SkeletonIssue]:
     if not skeleton.entrance_ids or not skeleton.segments:
         return []
     adjacency: dict[str, set[str]] = defaultdict(set)
+    segments = {segment.id: segment for segment in skeleton.segments}
     for segment in skeleton.segments:
         adjacency[segment.start_node_id].add(segment.end_node_id)
         adjacency[segment.end_node_id].add(segment.start_node_id)
+    for movement in skeleton.movements:
+        for seg_id in (movement.from_segment_id, movement.to_segment_id):
+            segment = segments.get(seg_id)
+            if segment is None:
+                continue
+            for node_id in (segment.start_node_id, segment.end_node_id, movement.via_node_id):
+                adjacency[movement.via_node_id].add(node_id)
+                adjacency[node_id].add(movement.via_node_id)
     entrance_nodes = {
         node.id
         for node in skeleton.nodes

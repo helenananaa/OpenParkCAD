@@ -10,7 +10,7 @@ unfinished stages. Runtime behavior remains defined by
 - [x] N1：2 个正例、2 个硬反例及来源/人工参考已冻结。
 - [x] N2：RoadSkeleton 契约、稳定 ID、派生几何和 fail-closed 结构验证完成。
 - [x] N3：legacy adapter 覆盖现有主要道路族，默认结果无语义变化。
-- [ ] N4：parallel-ladder 独立候选生成和预筛完成。
+- [x] N4：parallel-ladder 独立候选生成和预筛完成。
 - [ ] N5：支持范围内的 junction movement 和完整道路通行完成。
 - [ ] N6：停车模块、依赖、冲突、greedy/CP-SAT 选择完成。
 - [ ] N7：外层 Top-K、预算、正式重建和晋升语义完成。
@@ -115,4 +115,17 @@ git ls-files --others --exclude-standard
 - 性能：full pytest 493.77s.
 - 已知限制：shadow only; official reports still have no `road_network_search` block. Adapter uses declared parent/connected/entrance links, not polygon-guessed turns.
 - 回退验证：remove `topology_generators` and the `skeleton=` attach in `context_from_layout`; generation functions remain independently callable.
+- 是否满足退出条件：是
+
+### N4. parallel-ladder 独立候选生成
+
+- 状态：已完成
+- 源码身份：parent `7a7313dd0c6e9bff8a76d438666c34b0d5625dbf`
+- 改动文件：`openparkcad/topology_generators/parallel_ladder.py`, `openparkcad/topology_generators/__init__.py`, `openparkcad/road_skeleton_validation.py`, `tests/test_parallel_ladder.py`, `tests/test_road_skeleton_validation.py`, this record.
+- 执行命令：`pytest tests/test_parallel_ladder.py tests/test_road_skeleton_validation.py -q` (10 passed)
+- 证据目录：`output/verification/v0_5/20260904-174445-n4-ladder/` (JSON/SVG debug skeletons). Scratch: `{SCRATCH}/n4/`.
+- 正例：N-T01 ≥2 parking aisles + cross; N-T02 second wing used; N-T06 stable IDs; N-T07 truncation counts; N-T08 `prefilter_score` not `score_layout`.
+- 反例：N-T03 no width shrink; N-T04 obstacle overlap rejected; N-T05 disconnected entrance fail-closed.
+- 已知限制：not wired to official catalog/search; `one_way_loop` remains closed.
+- 回退验证：delete `parallel_ladder.py` and N4 tests; generator still unused by `generate_layout`.
 - 是否满足退出条件：是
