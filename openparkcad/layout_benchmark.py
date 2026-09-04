@@ -30,7 +30,7 @@ MANIFEST_VERSION = "layout-benchmark-manifest-1"
 RESULT_VERSION = "layout-benchmark-result-1"
 NOT_AVAILABLE = "not_available"
 
-EXPECTED_CASE_COUNT = 20
+EXPECTED_CASE_COUNT = 22
 OUTCOMES = ("valid", "invalid", "input_error", "exception", "timeout")
 
 QUALITY_PROMOTION_OVERLAY = {"promote_candidate_layout_preview": True}

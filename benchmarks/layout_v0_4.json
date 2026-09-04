@@ -145,6 +145,22 @@
       "required_checks": ["graph", "maneuver", "site", "engineering", "operational"]
     },
     {
+      "case_id": "parallel-ladder-rect",
+      "path": "examples/parallel_ladder_rect_site.json",
+      "provenance": "synthetic",
+      "tags": ["v0_5", "parallel_ladder", "development"],
+      "expectation": "valid_with_required_checks",
+      "required_checks": ["graph", "maneuver", "site", "engineering", "operational"]
+    },
+    {
+      "case_id": "parallel-ladder-l",
+      "path": "examples/parallel_ladder_l_site.json",
+      "provenance": "synthetic",
+      "tags": ["v0_5", "parallel_ladder", "holdout"],
+      "expectation": "valid_with_required_checks",
+      "required_checks": ["graph", "maneuver", "site", "engineering", "operational"]
+    },
+    {
       "case_id": "irregular-courtyard",
       "path": "tests/fixtures/v0_3/irregular_courtyard_pass.json",
       "provenance": "synthetic",

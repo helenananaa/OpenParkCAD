@@ -33,6 +33,7 @@ class LayoutCandidateContext:
     reject_reason: str | None = None
     spine_payload: dict[str, Any] = field(default_factory=dict)
     retain_reason: str | None = None
+    skeleton: Any = None
 
 
 @dataclass(frozen=True)
@@ -275,6 +276,14 @@ def context_from_layout(
         )
     else:
         isolated_layout = replace(isolated_layout, attempts=list(isolated_layout.attempts))
+    skeleton = None
+    try:
+        from openparkcad.topology_generators.legacy_adapter import adapt_layout_to_skeleton
+
+        adapted = adapt_layout_to_skeleton(isolated_layout, strict=False)
+        skeleton = adapted.skeleton
+    except (ValueError, TypeError):
+        skeleton = None
     return LayoutCandidateContext(
         candidate_id=candidate_id,
         spine_id=spine_id,
@@ -285,6 +294,7 @@ def context_from_layout(
         collect_status=collect_status,
         reject_reason=reject_reason,
         spine_payload=payload,
+        skeleton=skeleton,
     )
 
 
