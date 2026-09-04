@@ -11,7 +11,7 @@ unfinished stages. Runtime behavior remains defined by
 - [x] N2：RoadSkeleton 契约、稳定 ID、派生几何和 fail-closed 结构验证完成。
 - [x] N3：legacy adapter 覆盖现有主要道路族，默认结果无语义变化。
 - [x] N4：parallel-ladder 独立候选生成和预筛完成。
-- [ ] N5：支持范围内的 junction movement 和完整道路通行完成。
+- [x] N5：支持范围内的 junction movement 和完整道路通行完成。
 - [ ] N6：停车模块、依赖、冲突、greedy/CP-SAT 选择完成。
 - [ ] N7：外层 Top-K、预算、正式重建和晋升语义完成。
 - [ ] N8：Schema、report、project、review bundle、viewer/CLI 接入完成。
@@ -128,4 +128,14 @@ git ls-files --others --exclude-standard
 - 反例：N-T03 no width shrink; N-T04 obstacle overlap rejected; N-T05 disconnected entrance fail-closed.
 - 已知限制：not wired to official catalog/search; `one_way_loop` remains closed.
 - 回退验证：delete `parallel_ladder.py` and N4 tests; generator still unused by `generate_layout`.
+- 是否满足退出条件：是
+
+### N5. 连接动作与道路连续通行
+
+- 状态：已完成
+- 改动文件：`openparkcad/topology_generators/ladder_layout.py`, `tests/test_parallel_ladder_road_traversal.py`, this record.
+- 执行命令：`pytest tests/test_parallel_ladder_road_traversal.py tests/test_road_transitions.py tests/test_road_traversal.py tests/test_road_traversal_contract.py -q` (39 passed)
+- 正例：N-T13 unrequested keeps `not_requested`; N-T14 identity includes skeleton/vehicle; both-ends layouts expose connected parking aisles.
+- 反例：N-T09 envelope-blocked T does not report traversal passed; N-T11 one_way_loop remains config-unavailable; N-T12 one unsupported junction cannot be site-wide passed.
+- 已知限制：per-stall official journeys for every retained bay wait on N6 module placement; N5 reuses existing orthogonal T templates via a skeleton→layout adapter. Cache identity includes skeleton id so evidence is not reused across skeletons.
 - 是否满足退出条件：是
