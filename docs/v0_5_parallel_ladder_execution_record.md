@@ -7,7 +7,7 @@ unfinished stages. Runtime behavior remains defined by
 ## Stage checklist
 
 - [x] N0：当前混合工作树、环境、质量和正式示例基线已保存。
-- [ ] N1：2 个正例、2 个硬反例及来源/人工参考已冻结。
+- [x] N1：2 个正例、2 个硬反例及来源/人工参考已冻结。
 - [ ] N2：RoadSkeleton 契约、稳定 ID、派生几何和 fail-closed 结构验证完成。
 - [ ] N3：legacy adapter 覆盖现有主要道路族，默认结果无语义变化。
 - [ ] N4：parallel-ladder 独立候选生成和预筛完成。
@@ -49,4 +49,27 @@ git ls-files --others --exclude-standard
 - 性能：pytest 1119.11s; legacy solve ~2s; multi-spine solve ~3s (search budget elapsed 0.695s after 1.462s baseline). Frozen N9 ceilings: single-case hard timeout 180s, refinement budget 20s, max_skeletons 16, max full evaluations 8.
 - 已知限制：baseline is a mixed worktree (HEAD plus pre-existing user edits). Those edits are user-owned and were not reset, overwritten, or staged. No licensed real CAD is present.
 - 回退验证：N0 changed no runtime modules; rollback is unused.
+- 是否满足退出条件：是
+
+### N1. 冻结场地和失败分类
+
+- 状态：已完成
+- 源码身份：parent `e19234d3984c720cc8c9af5245d31e574807a3f9` on `codex/v0.3-vehicle-validity`; user dirty files still present and unstaged.
+- 改动文件：`examples/parallel_ladder_rect_site.json`, `examples/parallel_ladder_l_site.json`, `tests/fixtures/v0_5/*`, `tests/v0_5_parallel_ladder_support.py`, `tests/test_v0_5_parallel_ladder_cases.py`, `docs/topology_iteration_parallel_ladder.md`, `docs/verification/v0_5_n1_cases.json`, this record.
+- 执行命令：
+
+```powershell
+./.venv/Scripts/python.exe -m ruff check tests/v0_5_parallel_ladder_support.py tests/test_v0_5_parallel_ladder_cases.py
+./.venv/Scripts/python.exe -m pytest tests/test_v0_5_parallel_ladder_cases.py -q
+./.venv/Scripts/python.exe -m openparkcad solve examples/parallel_ladder_rect_site.json --out $n1Dir/rect.dxf --preview $n1Dir/rect.svg --report $n1Dir/rect.json
+./.venv/Scripts/python.exe -m openparkcad solve examples/parallel_ladder_l_site.json --out $n1Dir/l.dxf --preview $n1Dir/l.svg --report $n1Dir/l.json
+```
+
+- 退出码和结果：ruff=0; pytest=0 (7 passed); both example solves=0.
+- 证据目录：`output/verification/v0_5/20260904-164734-n1-cases/`. Scratch: `{SCRATCH}/n1/`.
+- 正例：N-T01 wide rectangle (development, current 42 stalls, 1 NS parking aisle, no real/both-end cross). N-T02 L-shape (holdout, current 48 stalls, east wing unused).
+- 反例：N-T03 10 m site cannot hold two 6.0 m aisles (current 0 stalls, widths unshrunk). N-T04 graph-contact T with `t-fillet-block` in the fillet (current 16 stalls, obstacle present).
+- 性能：N1 targeted pytest 0.84s; rect/L solves completed in the N0 180 s ceiling.
+- 已知限制：all four cases are synthetic-only. `optimization.road_network` is documented in metadata, not a live public field until N8. Human-reference stall counts are not a KPI.
+- 回退验证：new files only; deleting them restores N0 behavior.
 - 是否满足退出条件：是

@@ -1,0 +1,56 @@
+{
+  "version": "openparkcad-v0.5-n1-cases-1",
+  "date": "2026-09-04",
+  "run_id": "20260904-164734",
+  "evidence_dir": "output/verification/v0_5/20260904-164734-n1-cases",
+  "source": "synthetic",
+  "real_cad": false,
+  "n0_commit": "e19234d3984c720cc8c9af5245d31e574807a3f9",
+  "pytest": {
+    "file": "tests/test_v0_5_parallel_ladder_cases.py",
+    "passed": 7
+  },
+  "cases": [
+    {
+      "id": "N-T01",
+      "path": "examples/parallel_ladder_rect_site.json",
+      "kind": "positive",
+      "split": "development",
+      "source": "synthetic",
+      "current_stall_count": 42,
+      "current_parallel_parking_aisles": 1,
+      "current_has_real_cross_aisle": false,
+      "current_insufficient": true
+    },
+    {
+      "id": "N-T02",
+      "path": "examples/parallel_ladder_l_site.json",
+      "kind": "positive",
+      "split": "holdout",
+      "source": "synthetic",
+      "current_stall_count": 48,
+      "current_uses_second_wing": false,
+      "current_insufficient": true
+    },
+    {
+      "id": "N-T03",
+      "path": "tests/fixtures/v0_5/parallel_ladder_tight_reject.json",
+      "kind": "hard_reject",
+      "split": "development",
+      "source": "synthetic",
+      "site_width": 10.0,
+      "hard_aisle_width": 6.0,
+      "two_aisle_clear_width": 12.0,
+      "current_stall_count": 0
+    },
+    {
+      "id": "N-T04",
+      "path": "tests/fixtures/v0_5/parallel_ladder_turn_reject.json",
+      "kind": "hard_reject",
+      "split": "holdout",
+      "source": "synthetic",
+      "obstacle_id": "t-fillet-block",
+      "current_stall_count": 16
+    }
+  ]
+}
