@@ -26,5 +26,7 @@ Default inputs (no `road_network` block) keep the N0 official path.
 
 ## Evidence
 
-See `docs/v0_5_parallel_ladder_execution_record.md` and
-`docs/verification/v0_5_20260904.json`.
+See `docs/v0_5_parallel_ladder_execution_record.md`,
+`docs/verification/v0_5_20260904.json`, and the §16.2 matrix receipt
+`docs/verification/v0_5_n9_matrix.json` (1152 sequential synthetic cells;
+timeouts hit the frozen 180s N0 ceiling and were not relaxed).

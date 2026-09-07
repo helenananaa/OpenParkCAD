@@ -27,6 +27,13 @@
       "families_legacy": true,
       "promotion_off": true,
       "greedy_backend": true
+    },
+    "matrix": {
+      "cells": 1152,
+      "outcomes": {"valid": 502, "invalid": 500, "timeout": 150, "exception": 0},
+      "family_comparison": {"improved": 0, "tied": 250, "degraded": 0, "unresolved": 246, "incomparable": 80},
+      "evidence_dir": "output/verification/v0_5/20260904-184545-n9-matrix",
+      "receipt": "docs/verification/v0_5_n9_matrix.json"
     }
   },
   "road_network_search_version": "road-network-search-1",

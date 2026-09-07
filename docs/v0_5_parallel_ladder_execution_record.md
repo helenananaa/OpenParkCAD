@@ -164,6 +164,6 @@ git ls-files --others --exclude-standard
 - 状态：已完成
 - 执行：ruff=0；pytest 500 passed，coverage 83.77%，fail_under 80；build=0；isolated wheel solve=0，package 不在工作区；四条回退均成立。
 - 证据：`output/verification/v0_5/20260904-175826-n9-release/`
-- 未跑满 N9 §16.2 全 corpus × 开关 × 3 次长矩阵（时长）；代表回退与默认路径测试已覆盖 N-T15/16/24 语义。
+- §16.2 矩阵：24 cases × 16 variants × 3 repeats = 1152 sequential cells into `output/verification/v0_5/20260904-184545-n9-matrix/`。outcomes valid=502, invalid=500, timeout=150, exception=0。family-off vs parallel_ladder: improved=0, tied=250, degraded=0, unresolved=246, incomparable=80。默认模式（family off / greedy / promo off / rt off）72 cells：63 valid，9 invalid 为既有 tight/quota/N1 hard-reject（offset-gate-quota、tight-rear-court、parallel-ladder-tight-reject）。phase0-site 默认 83 stalls / 7512.80 与 N0 一致。150 次 timeout 命中冻结 180s N0 天花板（148 次为 requested road_traversal）；未放宽。合成-only。
 - 未 push/tag/release。
-- 是否满足退出条件：是（合成证据；全量基准矩阵未跑）
+- 是否满足退出条件：是（合成证据）
