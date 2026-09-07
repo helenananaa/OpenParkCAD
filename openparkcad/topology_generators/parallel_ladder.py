@@ -11,6 +11,7 @@ from shapely.geometry import LineString, Point as ShapelyPoint
 from shapely.geometry.base import BaseGeometry
 
 from openparkcad.models import SiteSpec
+from openparkcad.road_network_config import parse_road_network_mapping
 from openparkcad.road_skeleton import (
     ROAD_SKELETON_VERSION,
     RoadSkeleton,
@@ -61,21 +62,12 @@ def read_ladder_config(site: SiteSpec, override: Mapping[str, Any] | None = None
     raw = dict((site.optimization or {}).get("road_network") or {})
     if override:
         raw.update(dict(override))
-    policy = str(raw.get("cross_aisle_policy") or "entry_end")
-    if policy == "one_way_loop" or bool(raw.get("allow_one_way_loop")):
-        raise ValueError("allow_one_way_loop is unsupported until N5")
-    if policy not in {"entry_end", "both_ends"}:
-        raise ValueError("cross_aisle_policy must be entry_end or both_ends")
-    max_skeletons = int(raw.get("max_skeletons") or 16)
-    dominant = int(raw.get("dominant_axis_count") or 2)
-    max_aisles = int(raw.get("max_parallel_aisles") or 6)
-    if min(max_skeletons, dominant, max_aisles) < 1:
-        raise ValueError("ladder numeric limits must be positive integers")
+    parsed = parse_road_network_mapping(raw)
     return LadderSearchConfig(
-        max_skeletons=max_skeletons,
-        dominant_axis_count=dominant,
-        max_parallel_aisles=max_aisles,
-        cross_aisle_policy=policy,
+        max_skeletons=parsed.max_skeletons,
+        dominant_axis_count=parsed.dominant_axis_count,
+        max_parallel_aisles=parsed.max_parallel_aisles,
+        cross_aisle_policy=parsed.cross_aisle_policy,
         allow_one_way_loop=False,
     )
 

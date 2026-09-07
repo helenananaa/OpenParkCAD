@@ -42,7 +42,10 @@ def test_through_site_with_90_degree_stall_covers_every_retained_stall() -> None
 
 
 def test_graph_contact_but_body_blocked_fails_with_collision_object() -> None:
-    layout = through_layout(extra_obstacle=[(8.0, 2.2), (12.0, 2.2), (12.0, 7.8), (8.0, 7.8)])
+    layout = through_layout(
+        extra_obstacle=[(8.0, 2.2), (12.0, 2.2), (12.0, 7.8), (8.0, 7.8)],
+        time_budget_seconds=60.0,
+    )
     record = validate_road_traversal(layout)
     assert record["status"] == "failed"
     assert record["valid"] is False

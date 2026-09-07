@@ -8,6 +8,7 @@ from openparkcad.layout_search import layout_search_report
 from openparkcad.models import site_from_dict
 from openparkcad.project_model import load_project, save_project, site_dict_from_layout
 from openparkcad.project_service import ProjectService
+from openparkcad.skeleton_identity import official_skeleton_mapping
 from tests.v0_5_parallel_ladder_support import load_case_site
 
 
@@ -53,6 +54,33 @@ def test_nt23_project_save_reopen_keeps_skeleton_and_official_ids(tmp_path: Path
     assert [aisle.id for aisle in again.aisles] == aisle_ids
     assert (again.site.metadata or {}).get("skeleton_id") == skeleton_id
     assert (loaded.accepted_site or {}).get("optimization", {}).get("road_network", {}).get("enabled") is True
+
+
+def test_nt23_skeleton_mapping_covers_official_objects() -> None:
+    site = load_case_site("N-T01")
+    optimization = dict(site.optimization or {})
+    optimization["road_network"] = {
+        "enabled": True,
+        "families": ["legacy", "parallel_ladder"],
+        "max_skeletons": 8,
+        "cross_aisle_policy": "both_ends",
+        "allow_one_way_loop": False,
+    }
+    optimization["promote_candidate_layout_preview"] = True
+    layout = generate_layout(replace(site, optimization=optimization))
+    mapping = official_skeleton_mapping(layout)
+    assert mapping["family"] == "parallel_ladder"
+    assert mapping["generation_mode"] == "parallel_ladder"
+    assert mapping["skeleton_id"]
+    for aisle in layout.aisles:
+        assert mapping["objects"][aisle.id]["kind"] == "aisle"
+        assert mapping["objects"][aisle.id]["role"] == aisle.role
+        assert mapping["objects"][aisle.id]["directionality"] == aisle.directionality
+    for stall in layout.stalls:
+        assert mapping["objects"][stall.id]["kind"] == "stall"
+        assert mapping["objects"][stall.id]["source_segment_id"] == stall.served_by_aisle_id
+    payload = layout_search_report(layout)
+    assert payload["road_network_search"]["official_mapping"]["skeleton_id"] == mapping["skeleton_id"]
 
 
 def test_enabled_search_report_survives_layout_search_report() -> None:

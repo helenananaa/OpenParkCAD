@@ -6,9 +6,13 @@ import pytest
 
 from openparkcad.generator import generate_layout
 from openparkcad.models import ParkingStall
+from openparkcad.parking_motion_adapter import parking_motion_for_stall
 from openparkcad.road_skeleton import make_movement, make_node, make_segment, make_skeleton
+from openparkcad.road_transitions import build_occupancy
 from openparkcad.road_traversal import validate_road_traversal
+from openparkcad.road_traversal_models import parse_traversal_policy
 from openparkcad.topology_generators.ladder_layout import layout_from_skeleton, validate_skeleton_road_traversal
+from openparkcad.topology_generators.ladder_modules import build_and_select_ladder_modules
 from openparkcad.topology_generators.parallel_ladder import generate_parallel_ladder_skeletons, read_ladder_config
 from openparkcad.traffic_graph import build_traffic_graph, validate_traffic_graph
 from tests.v0_5_parallel_ladder_support import load_case_site
@@ -45,7 +49,10 @@ def test_nt13_unrequested_keeps_current_validity() -> None:
 
 
 def test_nt09_graph_contact_but_envelope_collision_fails_traversal() -> None:
-    site = _enable_road(load_case_site("N-T04"), True)
+    site = load_case_site("N-T04")
+    constraints = dict(site.constraints or {})
+    constraints["road_traversal"] = {"enabled": True, "scope": "site_interior", "time_budget_seconds": 30.0}
+    site = replace(site, constraints=constraints)
     n0 = make_node("N0", "entrance_port", (8.0, 0.0), heading_degrees=90.0, source_id="south-gate")
     n1 = make_node("N1", "junction", (8.0, 40.0), heading_degrees=90.0)
     n2 = make_node("N2", "terminal", (30.0, 40.0), heading_degrees=0.0)
@@ -68,11 +75,18 @@ def test_nt09_graph_contact_but_envelope_collision_fails_traversal() -> None:
         skeleton,
         stalls=[_stall_on("S-CROSS", [(18.0, 43.0), (20.5, 43.0), (20.5, 48.0), (18.0, 48.0)])],
     )
-    graph = validate_traffic_graph(build_traffic_graph(layout), layout)
+    graph_obj = build_traffic_graph(layout)
+    contact = any(
+        ("S-SPINE" in (edge.from_node_id + edge.to_node_id) and "S-CROSS" in (edge.from_node_id + edge.to_node_id))
+        for edge in graph_obj.edges
+    )
+    assert contact
     traversal = validate_skeleton_road_traversal(site, skeleton, layout.stalls)
-    assert graph["valid"] is True or graph.get("errors") is not None
-    assert traversal["status"] in {"failed", "unsupported", "incomplete"}
+    assert traversal["status"] == "failed"
     assert traversal.get("valid") is not True
+    failures = traversal.get("failures") or []
+    assert failures
+    assert any(item.get("collision_object") or item.get("reason") for item in failures)
 
 
 def test_nt12_one_unsupported_junction_does_not_pass_the_site() -> None:
@@ -115,3 +129,36 @@ def test_nt10_both_ends_layout_has_connected_parking_aisles() -> None:
     assert len(parking) >= 2
     assert len(crosses) >= 1
     assert any(aisle.connected_aisle_ids for aisle in parking) or any(aisle.parent_aisle_id for aisle in parking)
+
+
+def test_nt10_retained_stalls_have_graph_and_parking_motion() -> None:
+    site = load_case_site("N-T01")
+    result = generate_parallel_ladder_skeletons(
+        site,
+        config={"cross_aisle_policy": "both_ends", "max_skeletons": 1, "max_parallel_aisles": 2},
+    )
+    assert result.candidates
+    catalog = build_and_select_ladder_modules(site, result.candidates[0].skeleton)
+    assert catalog.selected_stalls
+    assert len({stall.id for stall in catalog.selected_stalls}) == len(catalog.selected_stalls)
+    seen_aisles: set[str] = set()
+    sample: list = []
+    for stall in catalog.selected_stalls:
+        aisle_id = stall.served_by_aisle_id or ""
+        if aisle_id in seen_aisles:
+            continue
+        seen_aisles.add(aisle_id)
+        sample.append(stall)
+        if len(sample) >= 2:
+            break
+    assert len(sample) >= 2
+    layout = layout_from_skeleton(site, result.candidates[0].skeleton, sample)
+    graph = validate_traffic_graph(build_traffic_graph(layout), layout)
+    assert graph["valid"] is True
+    occupancy = build_occupancy(layout)
+    policy = parse_traversal_policy(site)
+    vehicle = site.vehicle
+    assert vehicle is not None
+    for stall in sample:
+        motion = parking_motion_for_stall(layout, stall, occupancy, policy, vehicle)
+        assert motion.valid is True

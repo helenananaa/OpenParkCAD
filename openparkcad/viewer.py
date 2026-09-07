@@ -30,6 +30,7 @@ def write_review_html(bundle: dict[str, Any], path: str | Path) -> None:
   <header>
     <h1>{title}</h1>
     <p id="status-line"></p>
+    <p id="skeleton-line"></p>
   </header>
   <div id="toolbar">
     <label>Candidate <select id="candidate-select"></select></label>

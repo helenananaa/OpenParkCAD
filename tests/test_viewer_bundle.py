@@ -59,5 +59,10 @@ def test_view_cli_writes_html(tmp_path: Path) -> None:
     assert html_path.is_file()
     raw = html_path.read_text(encoding="utf-8")
     assert 'id="scene"' in raw
+    assert 'id="skeleton-line"' in raw
     assert "review.js" in raw
     assert "review-bundle-1" in raw
+    js = (tmp_path / "review.js").read_text(encoding="utf-8")
+    assert "skeleton_id" in js
+    assert "failed_junctions" in js
+    assert "data-directionality" in js

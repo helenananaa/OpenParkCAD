@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://openparkcad.local/schema/road-network.schema.json",
   "title": "optimization.road_network (v0.5 runtime)",
-  "description": "Live runtime field consumed by generate_layout. The user-owned openparkcad-input.schema.json is not modified this round; illegal values still fail-closed at runtime.",
+  "description": "Live runtime field consumed by generate_layout. Booleans are not integers; budgets must be finite positives. The user-owned openparkcad-input.schema.json is not modified this round; illegal values fail-closed at runtime.",
   "type": "object",
   "additionalProperties": false,
   "properties": {

@@ -63,6 +63,9 @@ def build_review_bundle(
             "stall_count": layout.stall_count,
             "score": dict(layout.score or {}),
             "layout_identity": (layout.road_traversal_validation or {}).get("layout_identity"),
+            "generation_mode": layout.generation_mode,
+            "skeleton_id": (layout.site.metadata or {}).get("skeleton_id") if isinstance(layout.site.metadata, dict) else None,
+            "family": (layout.site.metadata or {}).get("skeleton_family") if isinstance(layout.site.metadata, dict) else None,
         },
         "candidates": candidates,
         "road_traversal": layout.road_traversal_validation if isinstance(layout.road_traversal_validation, dict) else {},
@@ -72,6 +75,7 @@ def build_review_bundle(
             "status": search.get("status"),
             "budget": search.get("budget"),
             "official_candidate_id": search.get("official_candidate_id"),
+            "road_network_search": search.get("road_network_search"),
         },
     }
 
@@ -109,6 +113,7 @@ def _layout_snapshot(layout: LayoutResult, *, candidate_id: str, official: bool)
             status = "over_budget"
         elif not official:
             status = "failed"
+    meta = layout.site.metadata if isinstance(layout.site.metadata, dict) else {}
     return {
         "candidate_id": candidate_id,
         "object_ids": [aisle.id for aisle in layout.aisles] + [stall.id for stall in layout.stalls],
@@ -119,6 +124,9 @@ def _layout_snapshot(layout: LayoutResult, *, candidate_id: str, official: bool)
         "score": dict(layout.score or {}),
         "stall_count": layout.stall_count,
         "geometry": snapshot_candidate_geometry(layout),
+        "family": meta.get("skeleton_family"),
+        "skeleton_id": meta.get("skeleton_id"),
+        "generation_mode": layout.generation_mode,
         "road_traversal": {
             "requested": road.get("requested"),
             "executed": road.get("executed"),

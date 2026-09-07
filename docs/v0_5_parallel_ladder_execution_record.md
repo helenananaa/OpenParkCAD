@@ -11,11 +11,11 @@ unfinished stages. Runtime behavior remains defined by
 - [x] N2：RoadSkeleton 契约、稳定 ID、派生几何和 fail-closed 结构验证完成。
 - [x] N3：legacy adapter 覆盖现有主要道路族，默认结果无语义变化。
 - [x] N4：parallel-ladder 独立候选生成和预筛完成。
-- [x] N5：支持范围内的 junction movement 和完整道路通行完成。
+- [ ] N5：junction 已接入；逐车位 composed journey 仍未通过（N5-R 开）
 - [x] N6：停车模块、依赖、冲突、greedy/CP-SAT 选择完成。
 - [x] N7：外层 Top-K、预算、正式重建和晋升语义完成。
-- [x] N8：Schema、report、project、review bundle、viewer/CLI 接入完成。
-- [x] N9：完整回归、效果/性能、独立 wheel、回退和文档验收完成。
+- [ ] N8：Schema、工程和查看链（部分：runtime/report/viewer/fail-closed；主 Schema/CLI/project 仍为用户脏树）
+- [ ] N9：完整验收未闭合（矩阵不是最终 HEAD；N5 逐车位 composed journey 仍失败）
 
 ### N0. 冻结当前基线
 
@@ -132,13 +132,12 @@ git ls-files --others --exclude-standard
 
 ### N5. 连接动作与道路连续通行
 
-- 状态：已完成
+- 状态：部分通过
 - 改动文件：`openparkcad/topology_generators/ladder_layout.py`, `tests/test_parallel_ladder_road_traversal.py`, this record.
-- 执行命令：`pytest tests/test_parallel_ladder_road_traversal.py tests/test_road_transitions.py tests/test_road_traversal.py tests/test_road_traversal_contract.py -q` (39 passed)
-- 正例：N-T13 unrequested keeps `not_requested`; N-T14 identity includes skeleton/vehicle; both-ends layouts expose connected parking aisles.
-- 反例：N-T09 envelope-blocked T does not report traversal passed; N-T11 one_way_loop remains config-unavailable; N-T12 one unsupported junction cannot be site-wide passed.
-- 已知限制：per-stall official journeys for every retained bay wait on N6 module placement; N5 reuses existing orthogonal T templates via a skeleton→layout adapter. Cache identity includes skeleton id so evidence is not reused across skeletons.
-- 是否满足退出条件：是
+- 正例：N-T13 unrequested keeps `not_requested`; N-T14 identity includes skeleton/vehicle; both-ends layouts expose connected parking aisles; graph + parking_motion 对抽样车位有效。
+- 反例：N-T09 graph-contact T 在足够预算下 `status=failed` 且带 collision object; N-T11 one_way_loop unavailable; N-T12 unsupported junction cannot pass the site.
+- 已知限制：composed stall journeys 在 ladder T 上仍为 `no_supported_route_found`（`try_arc_turn` 无法连接 cross/parking 采样点）。
+- 是否满足退出条件：否
 
 ### N6. 停车模块和 skeleton 内 selector
 
@@ -155,18 +154,20 @@ git ls-files --others --exclude-standard
 
 ### N8. Schema、工程和查看链
 
-- 状态：已完成（runtime report）；用户脏树中的 Schema/CLI/project 文件未改。
-- 提交：`a0a1d0f1a2d0df6819379f18a8d84dfb3656d868`
-- 是否满足退出条件：runtime 是；Schema 文件冻结否（用户所有）
+- 状态：部分完成
+- 提交：`a0a1d0f1a2d0df6819379f18a8d84dfb3656d868` 及后续 skeptic-gap / wrap-up
+- 已完成：runtime `optimization.road_network` 严格解析（布尔不当整数、预算必须有限正数）；`schema/road-network.schema.json`；report `road_network_search`；review bundle 带 family/skeleton/generation_mode；viewer 显示 family、skeleton ID、道路角色/方向、失败 junction；`official_skeleton_mapping` 不改用户 `project_model.py`。
+- 未完成：主 `openparkcad-input.schema.json`、CLI、`project_model.py`/`project_service.py` 身份映射（用户脏树，未改）。
+- 是否满足退出条件：否
 
 ### N9. 效果、性能、wheel、回退和文档收尾
 
-- 状态：已完成（合成证据）；首次 isolated-wheel 收据 `environment.executable` 指向工作区 `.venv`，已由下方 skeptic-gap 重跑替换。
+- 状态：未闭合。合成 wheel 与 1152 格矩阵存在，但矩阵跑在晋升修复之前；N5 逐车位 journey 未过；主 Schema 未冻结。
 - 执行：ruff=0；pytest 500 passed，coverage 83.77%，fail_under 80；build=0；四条回退均成立。
 - 证据：`output/verification/v0_5/20260904-175826-n9-release/`
 - §16.2 矩阵：24 cases × 16 variants × 3 repeats = 1152 sequential cells into `output/verification/v0_5/20260904-184545-n9-matrix/`。outcomes valid=502, invalid=500, timeout=150, exception=0。family-off vs parallel_ladder: improved=0, tied=250, degraded=0, unresolved=246, incomparable=80。默认模式（family off / greedy / promo off / rt off）72 cells：63 valid，9 invalid 为既有 tight/quota/N1 hard-reject（offset-gate-quota、tight-rear-court、parallel-ladder-tight-reject）。phase0-site 默认 83 stalls / 7512.80 与 N0 一致。150 次 timeout 命中冻结 180s N0 天花板（148 次为 requested road_traversal）；未放宽。合成-only。
 - 未 push/tag/release。
-- 是否满足退出条件：是（合成证据）；wheel 包来源见 skeptic-gap 重跑。
+- 是否满足退出条件：否。矩阵和首次 N9 质量门是历史证据，不是最终 HEAD 闭合。
 
 ### Skeptic-gap close (post-N9)
 
@@ -190,3 +191,21 @@ $wheelPython -I -m openparkcad solve examples/parallel_ladder_rect_site.json --o
 - 回退验证：N-T15 `enabled=false`；families 不含 `parallel_ladder` 不生成 ladder；N-T16 promotion off 保留 baseline；缺 optimizer extra 的 isolated wheel 仍 hard-gate 且 greedy。
 - 未 push/tag/release。
 - 是否满足退出条件：是（合成证据）
+
+### N5-R / N8-R / N9-R wrap-up (audit response)
+
+- 状态：部分落地，三个收尾项均未全部关闭。
+- 判断与审计一致：算法原型到 N7；N8 部分；N9 不能按完成计。
+- 本轮改动：
+  - 严格 `parse_road_network_mapping`：`False`/`1.9`/`"2"`/`NaN` fail-closed。
+  - 正式 `generation_mode=parallel_ladder`。
+  - 每骨架 report 增加 family/source、selector、modules、gates、elapsed、failure_class。
+  - stall ID 按 segment 命名，避免跨通道碰撞。
+  - N-T09 强化为 graph-contact + `failed` + collision；N-T10 证明 graph 与 parking_motion，不假装 composed journey 已通过。
+  - viewer 显示 family、skeleton、role、directionality、failed junctions。
+  - 两条道路预算敏感测试使用 60s fixture 预算，避免全量套件里变成 `incomplete`。
+  - 未改用户脏树中的主 Schema / CLI / `project_model.py`。
+- 仍开：ladder T 上 `connect_states`/`try_arc_turn` 不能组成 stall journey；主 Schema/project/CLI；干净 checkout 的 1152 格矩阵。
+- 针对性测试：ruff=0；63 passed / 105s。
+- 全量：521 passed，coverage 83.87%，`fail_under` 80；两条原先套件敏感的道路测试在 60s fixture 预算下通过。
+- 未 push/tag/release。不重跑 1152 格矩阵（仍是晋升修复前的历史证据）。

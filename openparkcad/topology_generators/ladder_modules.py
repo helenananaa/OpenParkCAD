@@ -65,16 +65,22 @@ def build_and_select_ladder_modules(
     requested = backend
     actual = backend
     selected = _greedy_select(modules, conflicts)
+    selector_meta: dict[str, Any] = {"requested": requested, "actual": actual, "status": "optimal_greedy", "gap": None, "objective": None, "objective_bound": None}
     if backend == "cpsat":
         try:
-            cpsat_ids = _cpsat_select(modules, conflicts)
+            cpsat_ids, cpsat_meta = _cpsat_select(modules, conflicts)
             if cpsat_ids is not None:
                 selected = cpsat_ids
                 actual = "cpsat"
+                selector_meta = {"requested": requested, "actual": actual, **cpsat_meta}
             else:
                 actual = "greedy"
-        except Exception:
+                selector_meta["actual"] = "greedy"
+                selector_meta["backend_fallback_reason"] = "cpsat_infeasible_or_unavailable"
+        except Exception as exc:
             actual = "greedy"
+            selector_meta["actual"] = "greedy"
+            selector_meta["backend_fallback_reason"] = str(exc)
     by_id = {module.module_id: module for module in modules}
     stalls = [stall for module_id in selected for stall in by_id[module_id].stalls]
     return LadderModuleCatalog(
@@ -92,6 +98,7 @@ def build_and_select_ladder_modules(
             "selected_count": len(selected),
             "official_stall_count": len(stalls),
             "scope": "skeleton_catalog",
+            "selector": selector_meta,
         },
     )
 
@@ -124,7 +131,16 @@ def _modules_for_segment(site: SiteSpec, skeleton: RoadSkeleton, segment, usable
         poly = ShapelyPolygon(stall.polygon)
         if any(poly.distance(ShapelyPoint(point)) < segment.width / 2.0 for point in junction_points):
             continue
-        kept.append(stall)
+        kept.append(
+            ParkingStall(
+                id=f"{segment.id}-{stall.id}",
+                polygon=stall.polygon,
+                angle_degrees=stall.angle_degrees,
+                served_by_aisle_id=segment.id,
+                aisle_side=stall.aisle_side,
+                stall_type_id=stall.stall_type_id,
+            )
+        )
     chunk = 4
     modules = []
     for index in range(0, len(kept), chunk):
@@ -186,11 +202,11 @@ def _greedy_select(modules: list[LadderModule], conflicts: list[tuple[str, str, 
     return chosen
 
 
-def _cpsat_select(modules: list[LadderModule], conflicts: list[tuple[str, str, str]]) -> list[str] | None:
+def _cpsat_select(modules: list[LadderModule], conflicts: list[tuple[str, str, str]]) -> tuple[list[str] | None, dict[str, Any]]:
     try:
         from ortools.sat.python import cp_model
     except ImportError:
-        return None
+        return None, {"status": "unavailable", "backend_fallback_reason": "ortools_missing"}
 
     model = cp_model.CpModel()
     variables = {module.module_id: model.NewBoolVar(module.module_id) for module in modules}
@@ -204,6 +220,15 @@ def _cpsat_select(modules: list[LadderModule], conflicts: list[tuple[str, str, s
     solver = cp_model.CpSolver()
     solver.parameters.max_time_in_seconds = 2.0
     status = solver.Solve(model)
+    status_name = {cp_model.OPTIMAL: "optimal", cp_model.FEASIBLE: "feasible"}.get(status, "not_solved")
+    meta = {
+        "status": status_name,
+        "objective": float(solver.ObjectiveValue()) if status in (cp_model.OPTIMAL, cp_model.FEASIBLE) else None,
+        "objective_bound": float(solver.BestObjectiveBound()) if status in (cp_model.OPTIMAL, cp_model.FEASIBLE) else None,
+        "gap": float(solver.BestObjectiveBound() - solver.ObjectiveValue()) if status in (cp_model.OPTIMAL, cp_model.FEASIBLE) else None,
+        "scope": "skeleton_catalog_not_site_global",
+    }
     if status not in (cp_model.OPTIMAL, cp_model.FEASIBLE):
-        return None
-    return [module.module_id for module in modules if solver.Value(variables[module.module_id]) == 1]
+        return None, meta
+    selected = [module.module_id for module in modules if solver.Value(variables[module.module_id]) == 1]
+    return selected, meta

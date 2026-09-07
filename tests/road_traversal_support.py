@@ -41,10 +41,15 @@ def through_site(
     second_entrance: bool = True,
     stall_family: str = "perpendicular",
     constraints_extra: dict | None = None,
+    time_budget_seconds: float = 10.0,
 ) -> SiteSpec:
     constraints: dict = {"setbacks": {"site_boundary": 0.0}}
     if enabled:
-        constraints["road_traversal"] = {"enabled": True, "scope": "site_interior", "time_budget_seconds": 10.0}
+        constraints["road_traversal"] = {
+            "enabled": True,
+            "scope": "site_interior",
+            "time_budget_seconds": time_budget_seconds,
+        }
     if constraints_extra:
         constraints.update(constraints_extra)
     obstacles = [extra_obstacle] if extra_obstacle else []

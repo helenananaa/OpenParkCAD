@@ -4,6 +4,7 @@
   const select = document.getElementById("candidate-select");
   const details = document.getElementById("detail-text");
   const statusLine = document.getElementById("status-line");
+  const skeletonLine = document.getElementById("skeleton-line");
   const candidates = bundle.candidates || [];
   let current = 0;
   let view = { x: 0, y: 0, scale: 1 };
@@ -56,7 +57,11 @@
     });
     if (document.getElementById("layer-aisles").checked) {
       (candidate.geometry.aisles || []).forEach(function (a) {
-        html += poly(a.polygon, candidate.official ? "official" : "preview", 'data-object-id="' + escapeAttr(a.id || "") + '"');
+        html += poly(
+          a.polygon,
+          candidate.official ? "official" : "preview",
+          'data-object-id="' + escapeAttr(a.id || "") + '" data-role="' + escapeAttr(a.role || "") + '" data-directionality="' + escapeAttr(a.directionality || "") + '"'
+        );
       });
     }
     if (document.getElementById("layer-stalls").checked) {
@@ -83,13 +88,29 @@
     html += '<circle id="vehicle-marker" class="vehicle" r="0.4" visibility="hidden"/>';
     scene.innerHTML = html;
     statusLine.textContent = "candidate " + (candidate.candidate_id || "?") + " status=" + (candidate.status || "?") + " stalls=" + (candidate.stall_count || 0);
+    if (skeletonLine) {
+      skeletonLine.textContent = "family=" + (candidate.family || (bundle.official || {}).family || "-")
+        + " skeleton=" + (candidate.skeleton_id || (bundle.official || {}).skeleton_id || "-")
+        + " mode=" + (candidate.generation_mode || (bundle.official || {}).generation_mode || "-");
+    }
+    const failedJunctions = (bundle.failures || []).filter(function (f) {
+      const reason = String(f.reason || f.kind || "");
+      return reason.indexOf("junction") >= 0 || reason.indexOf("undeclared") >= 0;
+    });
     details.textContent = JSON.stringify({
       candidate_id: candidate.candidate_id,
       status: candidate.status,
       official: candidate.official,
+      family: candidate.family || (bundle.official || {}).family,
+      skeleton_id: candidate.skeleton_id || (bundle.official || {}).skeleton_id,
+      generation_mode: candidate.generation_mode || (bundle.official || {}).generation_mode,
+      aisles: (candidate.geometry.aisles || []).map(function (a) {
+        return { id: a.id, role: a.role, directionality: a.directionality };
+      }),
       checks_passed: candidate.checks_passed,
       score: candidate.score,
-      road_traversal: candidate.road_traversal
+      road_traversal: candidate.road_traversal,
+      failed_junctions: failedJunctions
     }, null, 2);
   }
   candidates.forEach(function (c, i) {

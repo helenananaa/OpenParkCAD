@@ -56,7 +56,7 @@ def layout_from_skeleton(site: SiteSpec, skeleton: RoadSkeleton, stalls: list[Pa
         site=replace(site, metadata=meta),
         stalls=list(stalls or []),
         aisles=aisles,
-        generation_mode="parallel_ladder_shadow",
+        generation_mode="parallel_ladder",
         main_entrance_id=entrance_id,
         graph_validation={},
         maneuver_validation={},

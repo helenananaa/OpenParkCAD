@@ -24,12 +24,14 @@ def test_ut01_bundle_candidates_come_from_one_solve() -> None:
 
 
 def test_ut02_failures_and_journeys_are_addressable() -> None:
-    layout = apply_road_traversal(through_layout())
+    layout = apply_road_traversal(through_layout(time_budget_seconds=60.0))
     bundle = build_review_bundle(layout)
     assert bundle["journeys"]
     assert bundle["journeys"][0]["stall_id"] == "P-001"
     assert bundle["journeys"][0]["trajectory"]
-    blocked = apply_road_traversal(through_layout(extra_obstacle=[(8.0, 2.2), (14.0, 2.2), (14.0, 7.8), (8.0, 7.8)]))
+    blocked = apply_road_traversal(
+        through_layout(extra_obstacle=[(8.0, 2.2), (14.0, 2.2), (14.0, 7.8), (8.0, 7.8)], time_budget_seconds=60.0)
+    )
     failed = build_review_bundle(blocked)
     assert failed["failures"]
     assert failed["candidates"][0]["status"] != "official" or failed["road_traversal"]["status"] != "passed"

@@ -27,9 +27,11 @@ The machine-readable fragment is `schema/road-network.schema.json`.
 
 - Default (field absent or `enabled: false`): N0 official path; no `road_network_search` block.
 - `families` must be strings from `{legacy, parallel_ladder}`. Unknown names fail-closed.
+- Integers (`max_skeletons`, `dominant_axis_count`, `max_parallel_aisles`, `max_full_evaluations`) reject booleans, floats, strings, and values `< 1`.
+- `refinement_budget_seconds` must be a finite number `> 0`. `NaN` / `Inf` fail-closed.
 - `allow_one_way_loop: true` remains unsupported; keep `false`.
 - `cross_aisle_policy` is `entry_end` or `both_ends`.
-- Official replacement still requires `promote_candidate_layout_preview`.
+- Official replacement still requires `promote_candidate_layout_preview`. Promoted official `generation_mode` is `parallel_ladder`.
 - Unfinished/budget-exhausted skeletons are `incomplete`, not infeasible, and cannot promote.
 
 Shipped example: `examples/parallel_ladder_rect_site.json`.
