@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import time
 from dataclasses import replace
 from typing import Any
 
@@ -13,6 +14,8 @@ from openparkcad.topology_generators.parallel_ladder import generate_parallel_la
 
 REPORT_VERSION = "road-network-search-1"
 ALLOWED_FAMILIES = frozenset({"legacy", "parallel_ladder"})
+DEFAULT_REFINEMENT_BUDGET_SECONDS = 20.0
+DEFAULT_MAX_FULL_EVALUATIONS = 8
 
 
 def road_network_requested(site: SiteSpec) -> bool:
@@ -41,38 +44,63 @@ def apply_road_network_search(site: SiteSpec, baseline: LayoutResult) -> LayoutR
     ladder = generate_parallel_ladder_skeletons(site, config=raw)
     from openparkcad.generator import _finalize_candidate, _layout_valid
 
+    budget_seconds = _refinement_budget_seconds(site, raw)
+    max_full = _max_full_evaluations(raw)
     evaluated = []
     official = baseline
-    for candidate in ladder.candidates:
+    started = time.perf_counter()
+    exhausted = False
+    incomplete = 0
+    for index, candidate in enumerate(ladder.candidates):
+        if len(evaluated) >= max_full or (time.perf_counter() - started) >= budget_seconds:
+            exhausted = True
+            leftover = ladder.candidates[index:]
+            incomplete = len(leftover)
+            for rest in leftover:
+                evaluated.append(
+                    {
+                        "skeleton_id": rest.skeleton.skeleton_id,
+                        "prefilter_score": rest.prefilter_score,
+                        "stall_count": None,
+                        "score_total": None,
+                        "valid": False,
+                        "incomplete": True,
+                        "selected_reason": "budget_exhausted",
+                    }
+                )
+            break
         catalog = build_and_select_ladder_modules(site, candidate.skeleton)
         layout = layout_from_skeleton(site, candidate.skeleton, catalog.selected_stalls)
         layout = _finalize_candidate(layout)
+        valid = _layout_valid(layout)
         evaluated.append(
             {
                 "skeleton_id": candidate.skeleton.skeleton_id,
                 "prefilter_score": candidate.prefilter_score,
                 "stall_count": layout.stall_count,
                 "score_total": score_total(layout) if layout.score else None,
-                "valid": _layout_valid(layout),
+                "valid": valid,
+                "incomplete": False,
                 "selected_reason": None,
             }
         )
         if not promotion:
             evaluated[-1]["selected_reason"] = "promotion_off"
             continue
-        if not _layout_valid(layout):
+        if not valid:
             evaluated[-1]["selected_reason"] = "candidate_invalid"
             continue
-        if not _layout_valid(baseline) and _layout_valid(layout):
+        if not _layout_valid(official) and valid:
             official = layout
             evaluated[-1]["selected_reason"] = "recovered_feasible"
             continue
-        if _layout_valid(baseline) and score_total(layout) > score_total(baseline) + 1e-6:
+        if _layout_valid(official) and score_total(layout) > score_total(official) + 1e-6:
             official = layout
             evaluated[-1]["selected_reason"] = "promoted"
         else:
             evaluated[-1]["selected_reason"] = "valid_not_better"
 
+    fully_evaluated = sum(1 for item in evaluated if not item.get("incomplete"))
     report = {
         "version": REPORT_VERSION,
         "requested": True,
@@ -83,16 +111,35 @@ def apply_road_network_search(site: SiteSpec, baseline: LayoutResult) -> LayoutR
             "deduplicated": ladder.counts.get("deduplicated", 0),
             "prefilter_passed": ladder.counts.get("prefilter_passed", 0),
             "retained": ladder.counts.get("retained", 0),
-            "fully_evaluated": len(evaluated),
+            "fully_evaluated": fully_evaluated,
             "verified": sum(1 for item in evaluated if item["valid"]),
-            "incomplete": 0,
+            "incomplete": incomplete,
         },
-        "budget": {"exhausted": False},
+        "budget": {
+            "exhausted": exhausted,
+            "configured_seconds": budget_seconds,
+            "elapsed_seconds": time.perf_counter() - started,
+            "max_full_evaluations": max_full,
+        },
         "skeletons": evaluated,
         "promotion_requested": promotion,
         "baseline_retained": official is baseline or official.generation_mode != "parallel_ladder_shadow",
     }
     return _with_report(official, report)
+
+
+def _refinement_budget_seconds(site: SiteSpec, raw: dict[str, Any]) -> float:
+    if raw.get("refinement_budget_seconds") is not None:
+        return float(raw["refinement_budget_seconds"])
+    search = site.optimization.get("layout_search") if isinstance(site.optimization, dict) else None
+    if isinstance(search, dict) and search.get("refinement_budget_seconds") is not None:
+        return float(search["refinement_budget_seconds"])
+    return DEFAULT_REFINEMENT_BUDGET_SECONDS
+
+
+def _max_full_evaluations(raw: dict[str, Any]) -> int:
+    value = raw.get("max_full_evaluations", DEFAULT_MAX_FULL_EVALUATIONS)
+    return max(1, int(value))
 
 
 def _empty_report(*, requested: bool, executed: bool, families: list[str]) -> dict[str, Any]:

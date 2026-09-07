@@ -83,6 +83,15 @@
     "enable_connectors": false,
     "enable_t_end_caps": false,
     "promote_candidate_layout_preview": true,
+    "road_network": {
+      "enabled": true,
+      "families": ["legacy", "parallel_ladder"],
+      "max_skeletons": 16,
+      "dominant_axis_count": 2,
+      "max_parallel_aisles": 6,
+      "cross_aisle_policy": "both_ends",
+      "allow_one_way_loop": false
+    },
     "selector_backend": "greedy",
     "weights": {
       "stall_count": 100,

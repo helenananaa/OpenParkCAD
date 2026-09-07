@@ -161,9 +161,32 @@ git ls-files --others --exclude-standard
 
 ### N9. 效果、性能、wheel、回退和文档收尾
 
-- 状态：已完成
-- 执行：ruff=0；pytest 500 passed，coverage 83.77%，fail_under 80；build=0；isolated wheel solve=0，package 不在工作区；四条回退均成立。
+- 状态：已完成（合成证据）；首次 isolated-wheel 收据 `environment.executable` 指向工作区 `.venv`，已由下方 skeptic-gap 重跑替换。
+- 执行：ruff=0；pytest 500 passed，coverage 83.77%，fail_under 80；build=0；四条回退均成立。
 - 证据：`output/verification/v0_5/20260904-175826-n9-release/`
 - §16.2 矩阵：24 cases × 16 variants × 3 repeats = 1152 sequential cells into `output/verification/v0_5/20260904-184545-n9-matrix/`。outcomes valid=502, invalid=500, timeout=150, exception=0。family-off vs parallel_ladder: improved=0, tied=250, degraded=0, unresolved=246, incomparable=80。默认模式（family off / greedy / promo off / rt off）72 cells：63 valid，9 invalid 为既有 tight/quota/N1 hard-reject（offset-gate-quota、tight-rear-court、parallel-ladder-tight-reject）。phase0-site 默认 83 stalls / 7512.80 与 N0 一致。150 次 timeout 命中冻结 180s N0 天花板（148 次为 requested road_traversal）；未放宽。合成-only。
+- 未 push/tag/release。
+- 是否满足退出条件：是（合成证据）；wheel 包来源见 skeptic-gap 重跑。
+
+### Skeptic-gap close (post-N9)
+
+- 状态：已完成
+- 源码身份：parent `6dcc2d333a7ee6d58dafdd3dd08a17e98482e3ad`；用户脏树文件仍未暂存。
+- 改动：official ladder 多边形裁剪到 `site.boundary`；晋升比较当前正式结果而非仅 baseline B；真实 `refinement_budget_seconds` / `max_full_evaluations`，未完成候选 `incomplete` 且不可晋升；N-T17/19/20/21/23；`schema/road-network.schema.json` 进入 wheel data-files；示例 `optimization.road_network` 实字段。未改用户所有的 Schema/CLI/`project_model.py`。
+- 执行命令：
+
+```powershell
+./.venv/Scripts/python.exe -m ruff check . --no-cache
+./.venv/Scripts/python.exe -m pytest tests/test_parallel_ladder_search.py tests/test_parallel_ladder_report.py tests/test_v0_5_parallel_ladder_cases.py tests/test_parallel_ladder.py tests/test_parallel_ladder_integration.py tests/test_road_skeleton_validation.py tests/test_road_traversal.py -q
+./.venv/Scripts/python.exe -m pytest --cov=openparkcad --cov-report=term-missing
+./.venv/Scripts/python.exe -m build
+# isolated venv outside workspace; python -I; cwd = wheel root
+$wheelPython -I -m openparkcad solve examples/parallel_ladder_rect_site.json --out layout.dxf --preview layout.svg --report report.json --review-bundle review-bundle.json
+```
+
+- 退出码和结果：ruff=0；targeted pytest=0（45 passed / 48.20s）；full pytest=0（507 passed，coverage 83.83%，`fail_under` 80）；build=0。isolated wheel `python -I` solve=0：72 stalls，`generation_mode=parallel_ladder_shadow`，`road_network_search` version `road-network-search-1`，`requested=true`，`executed=true`，families `[legacy, parallel_ladder]`，verified=3。executable 与 `openparkcad.__file__` 均在 `E:\CacheVault\Temp\openparkcad-v05-wheel-977357fc804a4cabb26dcd1749fded05\venv\`，不在工作区 `.venv`。`road-network.schema.json` 安装到该 venv 的 `share/openparkcad/schema/`。optimizer extra 未装（`ortools` spec false），回退 greedy。report 与 review-bundle `layout_identity` 均为 `ebb494be68b65705c9fe34cd0caa01f4f49d38b7f20bc8cc4966b8d323722963`。N-T01 冻结场地在 promotion on 下被 ladder 解决（42→72）。
+- 证据目录：`output/verification/v0_5/20260907-143304-n9-skeptic-gap/`。Scratch：`{SCRATCH}/n9/`（environment.json / wheel-report.json / wheel-origin.json 覆盖先前工作区 `.venv` 收据）和 `{SCRATCH}/n9-skeptic-gap/`。
+- 已知限制：用户所有 `schema/openparkcad-input.schema.json`、`cli.py`、`project_model.py` 仍未冻结进本提交。N8 实字段走 fragment + runtime fail-closed。合成-only。
+- 回退验证：N-T15 `enabled=false`；families 不含 `parallel_ladder` 不生成 ladder；N-T16 promotion off 保留 baseline；缺 optimizer extra 的 isolated wheel 仍 hard-gate 且 greedy。
 - 未 push/tag/release。
 - 是否满足退出条件：是（合成证据）

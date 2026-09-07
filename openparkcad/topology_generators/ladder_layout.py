@@ -7,6 +7,7 @@ from dataclasses import replace
 import math
 
 from shapely.geometry import Polygon as ShapelyPolygon
+from shapely.geometry.base import BaseGeometry
 
 from openparkcad.models import LayoutResult, ParkingAisle, ParkingStall, SiteSpec
 from openparkcad.road_skeleton import RoadSkeleton
@@ -34,7 +35,7 @@ def layout_from_skeleton(site: SiteSpec, skeleton: RoadSkeleton, stalls: list[Pa
                 parents[movement.to_segment_id] = movement.from_segment_id
     entrance_id = skeleton.entrance_ids[0] if skeleton.entrance_ids else None
     for segment in skeleton.segments:
-        polygon = list(derive_segment_polygon(segment).exterior.coords)[:-1]
+        polygon = _official_aisle_polygon(segment, site)
         role = ROLE_MAP.get(segment.role, segment.role)
         aisle = ParkingAisle(
             id=segment.id,
@@ -64,6 +65,31 @@ def layout_from_skeleton(site: SiteSpec, skeleton: RoadSkeleton, stalls: list[Pa
         operational_quality={},
         road_traversal_validation={},
     )
+
+
+def _official_aisle_polygon(segment, site: SiteSpec) -> list[tuple[float, float]]:
+    derived = derive_segment_polygon(segment)
+    site_poly = ShapelyPolygon(site.boundary)
+    if site_poly.is_empty or derived.is_empty:
+        return list(derived.exterior.coords)[:-1] if not derived.is_empty else []
+    clipped = derived.intersection(site_poly)
+    polygon = _largest_polygon(clipped)
+    if polygon is None or polygon.is_empty or polygon.area < 1e-6:
+        return list(derived.exterior.coords)[:-1]
+    return list(polygon.exterior.coords)[:-1]
+
+
+def _largest_polygon(geom: BaseGeometry) -> ShapelyPolygon | None:
+    if geom.geom_type == "Polygon":
+        return geom
+    if geom.geom_type == "MultiPolygon":
+        return max(geom.geoms, key=lambda item: item.area)
+    if geom.geom_type == "GeometryCollection":
+        polys = [item for item in geom.geoms if item.geom_type == "Polygon"]
+        if not polys:
+            return None
+        return max(polys, key=lambda item: item.area)
+    return None
 
 
 def _heading(aisle: ParkingAisle) -> float:

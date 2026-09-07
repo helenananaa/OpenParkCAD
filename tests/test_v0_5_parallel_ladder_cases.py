@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from dataclasses import replace
+
 from openparkcad.generator import generate_layout
 from tests.v0_5_parallel_ladder_support import (
     CASES,
@@ -63,7 +65,9 @@ def test_no_site_independent_stall_count_kpi() -> None:
 
 def test_nt01_current_single_spine_is_not_the_human_ladder() -> None:
     site = load_case_site("N-T01")
-    layout = generate_layout(site)
+    optimization = dict(site.optimization or {})
+    optimization["road_network"] = {"enabled": False, "families": ["legacy"]}
+    layout = generate_layout(replace(site, optimization=optimization))
     heading = site.entrances[0].heading_degrees
 
     assert rectangle_current_is_insufficient(layout, site)

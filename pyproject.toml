@@ -51,6 +51,7 @@ openparkcad = ["viewer_assets/*"]
   "schema/openparkcad-input.schema.json",
   "schema/openparkcad-review.schema.json",
   "schema/openparkcad-project.schema.json",
+  "schema/road-network.schema.json",
 ]
 "share/openparkcad/fixtures/v0_3" = ["tests/fixtures/v0_3/*.json", "tests/fixtures/v0_3/README.md"]
 "share/doc/openparkcad" = ["CHANGELOG.md", "docs/v0.3_vehicle_and_constraints.md"]
