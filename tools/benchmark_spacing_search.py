@@ -85,7 +85,7 @@ def main():
                     result = json.loads(target.read_text(encoding="utf-8")) if process.returncode == 0 and target.exists() else {
                         "outcome": "error", "accepted_stalls": 0, "error": stderr, "stdout": stdout,
                     }
-                result.update(case_id=case["id"], split=case["split"], mode=mode, repeat=repeat)
+                result.update(case_id=case["id"], split=case.get("split", "synthetic"), mode=mode, repeat=repeat)
                 target.write_text(json.dumps(result, indent=2))
                 results.append(result)
                 (out / "progress.json").write_text(json.dumps({"done": len(results), "total": 24,
