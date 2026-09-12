@@ -310,9 +310,14 @@ def _dict(raw: Any, label: str) -> dict[str, Any]:
 def _optimization(raw: dict[str, Any]) -> dict[str, Any]:
     from openparkcad.candidate_catalog import parse_selector_num_workers
     from openparkcad.layout_search import parse_layout_search_mapping
+    from openparkcad.road_network_config import parse_road_network_mapping
 
     parse_selector_num_workers(raw)
     parse_layout_search_mapping(raw)
+    if "road_network" in raw:
+        if raw["road_network"] is None:
+            raise ValueError("optimization.road_network must be an object")
+        parse_road_network_mapping(raw["road_network"])
     return raw
 
 

@@ -1,5 +1,13 @@
 # Current status
 
+The 2026-09-12 local integration adds the main road-network Schema, persisted
+skeleton/object mappings, road locks across save/reopen/regenerate, and frozen
+geometry for evaluated ladder candidates in the offline viewer. Browser
+candidate switching and layer toggling were exercised locally. This closes the
+N8 software integration scope; N9 matrix/installation evidence is recorded
+separately in `v0_5_closeout_20260912.md`. Dense-bay vehicle coverage and real-site
+validation remain open. No release is implied.
+
 The multi-spine iteration passed its 2026-09-03 closure checks: full regression,
 240 controlled benchmark runs, installed-wheel rollback checks, and both default
 and optimizer CI paths. See the [acceptance record](v0_4_multi_spine_acceptance.md)

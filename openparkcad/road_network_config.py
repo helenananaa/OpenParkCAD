@@ -57,7 +57,7 @@ def parse_road_network_mapping(raw: Any) -> RoadNetworkConfig:
     policy = _optional_policy(raw)
     allow_loop = _optional_bool(raw, "allow_one_way_loop", False)
     if allow_loop or policy == "one_way_loop":
-        raise ValueError("allow_one_way_loop is unsupported until N5")
+        raise ValueError("allow_one_way_loop is unsupported")
     return RoadNetworkConfig(
         enabled=enabled,
         families=families,
@@ -72,7 +72,7 @@ def parse_road_network_mapping(raw: Any) -> RoadNetworkConfig:
 
 
 def _optional_bool(raw: dict[str, Any], key: str, default: bool) -> bool:
-    if key not in raw or raw[key] is None:
+    if key not in raw:
         return default
     value = raw[key]
     if not isinstance(value, bool):
@@ -81,7 +81,7 @@ def _optional_bool(raw: dict[str, Any], key: str, default: bool) -> bool:
 
 
 def _optional_positive_int(raw: dict[str, Any], key: str, default: int) -> int:
-    if key not in raw or raw[key] is None:
+    if key not in raw:
         return default
     value = raw[key]
     if isinstance(value, bool) or not isinstance(value, int):
@@ -101,13 +101,13 @@ def positive_finite_number(value: Any, *, field: str) -> float:
 
 
 def _optional_positive_finite(raw: dict[str, Any], key: str) -> float | None:
-    if key not in raw or raw[key] is None:
+    if key not in raw:
         return None
     return positive_finite_number(raw[key], field=f"optimization.road_network.{key}")
 
 
 def _optional_families(raw: dict[str, Any]) -> tuple[str, ...]:
-    if "families" not in raw or raw["families"] is None:
+    if "families" not in raw:
         return DEFAULT_FAMILIES
     families = raw["families"]
     if not isinstance(families, list) or not families or any(not isinstance(item, str) for item in families):
@@ -119,11 +119,11 @@ def _optional_families(raw: dict[str, Any]) -> tuple[str, ...]:
 
 
 def _optional_policy(raw: dict[str, Any]) -> str:
-    if "cross_aisle_policy" not in raw or raw["cross_aisle_policy"] is None:
+    if "cross_aisle_policy" not in raw:
         return DEFAULT_POLICY
     policy = raw["cross_aisle_policy"]
     if policy == "one_way_loop":
-        raise ValueError("allow_one_way_loop is unsupported until N5")
+        raise ValueError("allow_one_way_loop is unsupported")
     if not isinstance(policy, str) or policy not in ALLOWED_POLICIES:
         raise ValueError("cross_aisle_policy must be entry_end or both_ends")
     return policy

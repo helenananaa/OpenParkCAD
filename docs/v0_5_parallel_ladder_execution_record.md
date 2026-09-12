@@ -11,11 +11,11 @@ unfinished stages. Runtime behavior remains defined by
 - [x] N2：RoadSkeleton 契约、稳定 ID、派生几何和 fail-closed 结构验证完成。
 - [x] N3：legacy adapter 覆盖现有主要道路族，默认结果无语义变化。
 - [x] N4：parallel-ladder 独立候选生成和预筛完成。
-- [ ] N5：junction 已接入；逐车位 composed journey 仍未通过（N5-R 开）
+- [ ] N5：宽车位合成案例已通过全部 20 条旅程；密排覆盖仍未关闭。
 - [x] N6：停车模块、依赖、冲突、greedy/CP-SAT 选择完成。
 - [x] N7：外层 Top-K、预算、正式重建和晋升语义完成。
-- [ ] N8：Schema、工程和查看链（部分：runtime/report/viewer/fail-closed；主 Schema/CLI/project 仍为用户脏树）
-- [ ] N9：完整验收未闭合（矩阵不是最终 HEAD；N5 逐车位 composed journey 仍失败）
+- [x] N8：主 Schema、工程来源映射、道路锁定、候选快照和浏览器查看链已接入；见 2026-09-12 收尾记录。
+- [ ] N9：完整验收未闭合；旧矩阵不是最终 HEAD，密排覆盖仍有限。新验证状态见 2026-09-12 收尾记录。
 
 ### N0. 冻结当前基线
 

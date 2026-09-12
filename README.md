@@ -11,6 +11,11 @@ fire-access, accessibility, and local-authority review.
 
 ## Current capability
 
+The opt-in v0.5 `parallel_ladder` development line now includes public input
+Schema validation, project source mappings and road locks, and frozen candidate
+geometry in the offline viewer. See [the local closeout record](docs/v0_5_closeout_20260912.md)
+for verification and the remaining dense-bay/field-validation boundaries.
+
 The solver can currently:
 
 - read the documented JSON site model and separate active fields from parsed,

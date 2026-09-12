@@ -11,6 +11,8 @@ import argparse
 import copy
 import csv
 import json
+import hashlib
+from importlib.metadata import version
 import os
 import platform
 import subprocess
@@ -193,6 +195,42 @@ def worker_main(argv: list[str]) -> int:
     return 0 if payload.get("outcome") in {"valid", "invalid"} else 1
 
 
+def bind_run_identity(out_dir: Path, identity: dict[str, Any], cases: list[dict[str, Any]]) -> None:
+    """Never relabel old cells with a new commit, fixture, or dependency set."""
+    if identity.get("dirty"):
+        raise ValueError("N9 matrix requires a clean committed checkout")
+    receipt = {
+        **identity,
+        "input_sha256": {case["path"]: hashlib.sha256((REPO / case["path"]).read_bytes()).hexdigest()
+                         for case in cases},
+        "python": sys.version,
+        "dependencies": {name: version(name) for name in ("openparkcad", "shapely", "ezdxf", "ortools")},
+        "ceilings": CEILINGS,
+    }
+    target = out_dir / "identity.json"
+    if target.exists():
+        if json.loads(target.read_text(encoding="utf-8")) != receipt:
+            raise ValueError("N9 resume identity mismatch; use a fresh output directory")
+    else:
+        target.write_text(json.dumps(receipt, indent=2), encoding="utf-8")
+
+
+def run_worker(command: list[str], *, cwd: Path) -> subprocess.CompletedProcess:
+    # On Windows a venv launcher has a child Python process. Killing only the
+    # launcher would leave a timed-out solve running alongside later cells.
+    process = subprocess.Popen(command, cwd=cwd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+    try:
+        stdout, stderr = process.communicate(timeout=TIMEOUT_SECONDS)
+    except subprocess.TimeoutExpired:
+        if os.name == "nt":
+            subprocess.run(["taskkill", "/PID", str(process.pid), "/T", "/F"], capture_output=True, check=False)
+        else:
+            process.kill()
+        process.communicate()
+        raise
+    return subprocess.CompletedProcess(command, process.returncode, stdout, stderr)
+
+
 def parent_main(argv: list[str]) -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--out", required=True)
@@ -203,7 +241,8 @@ def parent_main(argv: list[str]) -> int:
     out_dir = Path(args.out)
     out_dir.mkdir(parents=True, exist_ok=True)
     identity = git_identity(REPO)
-    (out_dir / "identity.json").write_text(json.dumps(identity, indent=2), encoding="utf-8")
+    all_cases = load_cases()
+    bind_run_identity(out_dir, identity, all_cases)
     (out_dir / "ceilings.json").write_text(json.dumps(CEILINGS, indent=2), encoding="utf-8")
     (out_dir / "environment.json").write_text(
         json.dumps(
@@ -218,7 +257,7 @@ def parent_main(argv: list[str]) -> int:
         encoding="utf-8",
     )
     (out_dir / "pid.txt").write_text(str(os.getpid()), encoding="utf-8")
-    cases = load_cases()
+    cases = all_cases
     if args.case_id:
         wanted = set(args.case_id)
         cases = [case for case in cases if case["case_id"] in wanted]
@@ -252,6 +291,8 @@ def parent_main(argv: list[str]) -> int:
     done = 0
     started_all = time.perf_counter()
     for case, variant, repeat in cells:
+        if git_identity(REPO) != identity:
+            raise ValueError("N9 source changed during execution; refusing mixed-revision evidence")
         cell_dir = out_dir / "cases" / case["case_id"] / variant["variant_id"] / str(repeat)
         cell_dir.mkdir(parents=True, exist_ok=True)
         result_path = cell_dir / "result.json"
@@ -301,13 +342,7 @@ def parent_main(argv: list[str]) -> int:
         ]
         started = time.perf_counter()
         try:
-            completed = subprocess.run(
-                command,
-                cwd=REPO,
-                capture_output=True,
-                text=True,
-                timeout=TIMEOUT_SECONDS,
-            )
+            completed = run_worker(command, cwd=REPO)
             (cell_dir / "stdout.txt").write_text(completed.stdout or "", encoding="utf-8")
             (cell_dir / "stderr.txt").write_text(completed.stderr or "", encoding="utf-8")
             if result_path.is_file():
@@ -336,6 +371,7 @@ def parent_main(argv: list[str]) -> int:
         payload["selector"] = variant["selector"]
         payload["promotion"] = variant["promotion"]
         payload["road_traversal"] = variant["road_traversal"]
+        payload["source_commit"] = identity["commit"]
         result_path.write_text(json.dumps(payload, indent=2), encoding="utf-8")
         records.append(payload)
         elapsed = time.perf_counter() - started_all

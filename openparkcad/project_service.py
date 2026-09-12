@@ -4,7 +4,10 @@ from __future__ import annotations
 
 import threading
 import time
-from dataclasses import dataclass, field
+import hashlib
+import json
+from copy import deepcopy
+from dataclasses import dataclass, field, replace
 from typing import Any, Callable
 
 from openparkcad.cli import _final_layout_errors
@@ -53,7 +56,7 @@ class ProjectService:
 
     def accept_layout(self, layout: LayoutResult, *, site: dict[str, Any] | None = None, locks: list[dict[str, Any]] | None = None) -> int:
         with self._lock:
-            site_payload = site or site_dict_from_layout(layout)
+            site_payload = deepcopy(site) if site is not None else site_dict_from_layout(layout)
             lock_payload = locks if locks is not None else (self.state.revisions[-1].locks if self.state.revisions else [])
             digest = input_digest(site_payload, lock_payload)
             revision = self.state.current_revision + 1
@@ -84,7 +87,24 @@ class ProjectService:
         aisle = next((item for item in self.last_accepted.aisles if item.id == aisle_id), None)
         if aisle is None:
             raise ValueError(f"aisle {aisle_id} not in accepted layout")
-        lock = lock_from_aisle(aisle)
+        if self.last_accepted.generation_mode == "parallel_ladder":
+            return self.lock_road(aisle_id)
+        lock = replace(lock_from_aisle(aisle), project_object_id=self.state.object_ids.get(aisle.id, aisle.id))
+        self._append_lock(lock)
+        return lock
+
+    def lock_road(self, aisle_id: str) -> LayoutLock:
+        if self.last_accepted is None:
+            raise ValueError("no accepted layout to lock")
+        aisle = next((item for item in self.last_accepted.aisles if item.id == aisle_id), None)
+        if aisle is None:
+            raise ValueError(f"road {aisle_id} not in accepted layout")
+        lock = LayoutLock(
+            lock_id=f"lock-{aisle.id}", kind="road", object_id=aisle.id,
+            project_object_id=self.state.object_ids.get(aisle.id, aisle.id),
+            geometry=list(aisle.polygon), heading_degrees=aisle.angle_degrees,
+            directionality=aisle.directionality,
+        )
         self._append_lock(lock)
         return lock
 
@@ -177,8 +197,15 @@ class ProjectService:
                 self.state.history.append({"event": "digest_mismatch_ignored", "revision": result.revision})
                 return False
             if result.status == "accepted" and result.layout is not None:
+                locks = [parse_lock(item) for item in self.state.revisions[-1].locks]
+                if (_final_layout_errors(result.layout) or not locks_satisfied(result.layout, locks)[0]
+                        or lock_site_conflicts(result.layout, locks)):
+                    return False
                 self.last_accepted = result.layout
+                self.state.accepted_site = deepcopy(self.state.revisions[-1].site)
                 self.state.accepted_layout = accepted_layout_snapshot(result.layout)
+                self.state.revisions[-1].accepted_layout_ref = f"rev-{result.revision}"
+                self._remember_object_ids(result.layout)
                 return True
             return False
 
@@ -246,6 +273,7 @@ class ProjectService:
             if revision != self.state.current_revision or digest != self.state.revisions[-1].input_digest:
                 return TaskResult(revision=revision, input_digest=digest, status="stale", layout=self.last_accepted)
             self.last_accepted = layout
+            self.state.accepted_site = deepcopy(self.state.revisions[-1].site)
             self.state.accepted_layout = accepted_layout_snapshot(layout)
             self.state.revisions[-1].accepted_layout_ref = f"rev-{revision}"
             self._remember_object_ids(layout)
@@ -253,7 +281,7 @@ class ProjectService:
 
     def _finish_if_current(self, revision: int, digest: str, result: TaskResult) -> TaskResult:
         with self._lock:
-            if revision != self.state.current_revision:
+            if revision != self.state.current_revision or digest != self.state.revisions[-1].input_digest:
                 result.status = "stale"
                 result.layout = self.last_accepted
             return result
@@ -264,9 +292,28 @@ class ProjectService:
         self.state.accepted_site = restored.accepted_site
         self.state.accepted_layout = restored.accepted_layout
         self.state.object_ids = restored.object_ids
+        self.state.object_sources = restored.object_sources
         self.last_accepted = layout_from_project_state(self.state)
 
     def _remember_object_ids(self, layout: LayoutResult) -> None:
+        from openparkcad.skeleton_identity import official_skeleton_mapping
+
+        mapping = official_skeleton_mapping(layout)
+        if mapping.get("skeleton_id") and layout.generation_mode == "parallel_ladder":
+            # S-* / P-* are local to a skeleton; identical slots in a different
+            # skeleton must not silently reuse an unrelated project's object.
+            for item in [*layout.aisles, *layout.stalls]:
+                source = mapping["objects"][item.id]
+                identity = [mapping["skeleton_id"], item.id, item.polygon]
+                digest = hashlib.sha256(json.dumps(identity, sort_keys=True).encode()).hexdigest()[:24]
+                project_id = f"project:{source['kind']}:{digest}"
+                self.state.object_ids[item.id] = project_id
+                self.state.object_sources[project_id] = {
+                    "official_object_id": item.id, "skeleton_id": mapping["skeleton_id"],
+                    "skeleton_version": mapping["skeleton_version"], "family": mapping["family"],
+                    **source,
+                }
+            return
         for aisle in layout.aisles:
             self.state.object_ids.setdefault(aisle.id, f"project:{aisle.role}:{len(self.state.object_ids)+1}")
         for stall in layout.stalls:

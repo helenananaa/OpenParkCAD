@@ -1310,6 +1310,38 @@ runtime diagnostics, and regression tests.
 
 ## 17. Current Next Step
 
+### Road-network search (v0.5 integration)
+
+`optimization.road_network` is an explicit opt-in object in the main input
+Schema as well as the packaged `road-network.schema.json` fragment. Both
+represent the same contract and require no remote Schema resolution.
+
+| Field | Default | Supported values |
+| --- | --- | --- |
+| `enabled` | `false` | Boolean |
+| `families` | `["legacy"]` | Nonempty array of `legacy`, `parallel_ladder` |
+| `max_skeletons` | `16` | Positive integer |
+| `dominant_axis_count` | `2` | Positive integer |
+| `max_parallel_aisles` | `6` | Positive integer |
+| `max_full_evaluations` | `8` | Positive integer |
+| `refinement_budget_seconds` | Runtime fallback, normally `20` | Positive finite number |
+| `cross_aisle_policy` | `entry_end` | `entry_end`, `both_ends` |
+| `allow_one_way_loop` | `false` | Only `false`; loop generation remains unsupported |
+
+Omit optional fields to use defaults. Explicit nulls, unknown fields/families,
+booleans used as integers, and unsupported loop requests are rejected even when
+the family is disabled. Runtime also rejects NaN/infinity, which are not JSON
+numbers. JSON Schema treats `1.0` as an integer; the runtime deliberately requires
+integer tokens for integer options. Promotion remains separately opt-in.
+
+Projects persist accepted geometry, search snapshots, skeleton/version and
+project-object/source/official-object mappings. `ProjectService.lock_road(id)`
+locks a road in a ladder without converting it into a single-main-aisle layout.
+Conflicting regeneration keeps the last accepted geometry. These are Python
+service operations; this does not add an interactive CAD editor or a project CLI.
+
+### Remaining input work
+
 The v0.3 parser, machine-readable Schema, vehicle fields, scoped exclusions, and
 minimum quotas are implemented. The next input-model work should deepen coverage
 without making the accepted vocabulary look more capable than runtime checks:

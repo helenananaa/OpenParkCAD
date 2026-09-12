@@ -2,22 +2,64 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://openparkcad.local/schema/road-network.schema.json",
   "title": "optimization.road_network (v0.5 runtime)",
-  "description": "Live runtime field consumed by generate_layout. Booleans are not integers; budgets must be finite positives. The user-owned openparkcad-input.schema.json is not modified this round; illegal values fail-closed at runtime.",
+  "description": "Explicit opt-in road-network search. Omitted fields use runtime defaults; null, unknown fields and unsupported loops are rejected.",
   "type": "object",
   "additionalProperties": false,
   "properties": {
-    "enabled": { "type": "boolean" },
+    "enabled": {
+      "type": "boolean",
+      "default": false
+    },
     "families": {
       "type": "array",
-      "items": { "type": "string", "enum": ["legacy", "parallel_ladder"] },
-      "minItems": 1
+      "items": {
+        "type": "string",
+        "enum": [
+          "legacy",
+          "parallel_ladder"
+        ]
+      },
+      "minItems": 1,
+      "default": [
+        "legacy"
+      ]
     },
-    "max_skeletons": { "type": "integer", "minimum": 1 },
-    "dominant_axis_count": { "type": "integer", "minimum": 1 },
-    "max_parallel_aisles": { "type": "integer", "minimum": 1 },
-    "max_full_evaluations": { "type": "integer", "minimum": 1 },
-    "refinement_budget_seconds": { "type": "number", "exclusiveMinimum": 0 },
-    "cross_aisle_policy": { "type": "string", "enum": ["entry_end", "both_ends"] },
-    "allow_one_way_loop": { "type": "boolean" }
+    "max_skeletons": {
+      "type": "integer",
+      "minimum": 1,
+      "default": 16
+    },
+    "dominant_axis_count": {
+      "type": "integer",
+      "minimum": 1,
+      "default": 2
+    },
+    "max_parallel_aisles": {
+      "type": "integer",
+      "minimum": 1,
+      "default": 6
+    },
+    "max_full_evaluations": {
+      "type": "integer",
+      "minimum": 1,
+      "default": 8
+    },
+    "refinement_budget_seconds": {
+      "type": "number",
+      "exclusiveMinimum": 0
+    },
+    "cross_aisle_policy": {
+      "type": "string",
+      "enum": [
+        "entry_end",
+        "both_ends"
+      ],
+      "default": "entry_end"
+    },
+    "allow_one_way_loop": {
+      "type": "boolean",
+      "const": false,
+      "default": false
+    }
   }
 }

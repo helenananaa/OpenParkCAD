@@ -1,5 +1,12 @@
 # Roadmap
 
+Current local progress (2026-09-12): N8 Schema/project/road-lock/candidate-viewer
+integration is implemented; see [the closeout record](v0_5_closeout_20260912.md).
+The older phase sections below retain historical sequencing. Support-range DXF
+import and Python project operations already exist; general surveyed-CAD import
+and an interactive editor remain future work. N9 and real-site acceptance are
+not implied by the implemented N8 integration.
+
 The near-term objective is not to add more risk metrics. It is to make the
 existing supported template generator predictable, fail-closed, testable, and
 honest about what a “valid” result means.

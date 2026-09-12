@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+from copy import deepcopy
 from typing import Any
 
 from openparkcad import __version__
@@ -32,6 +33,18 @@ def build_review_bundle(
         if item.get("candidate_id") == official_id and item.get("geometry"):
             candidates[0] = _merge_search_snapshot(official_snapshot, item)
             continue
+        candidates.append(_search_candidate_snapshot(item, official_id))
+    network = search.get("road_network_search") or {}
+    for row in network.get("skeletons") or []:
+        candidate_id = f"skeleton-{row['skeleton_id']}"
+        if candidate_id == official_id:
+            continue
+        item = {
+            **row, "candidate_id": candidate_id,
+            "not_evaluated": row.get("incomplete", False),
+            "official_score_total": row.get("score_total"),
+            "duration_seconds": row.get("elapsed_seconds"), "checks": row.get("gates") or {},
+        }
         candidates.append(_search_candidate_snapshot(item, official_id))
     if stale:
         for item in candidates:
@@ -192,7 +205,11 @@ def _search_candidate_snapshot(item: dict[str, Any], official_id: str) -> dict[s
         "status": status,
         "score": {"total": item.get("official_score_total")},
         "stall_count": item.get("stall_count"),
-        "geometry": geometry,
+        "geometry": deepcopy(geometry),
+        "family": item.get("family"),
+        "skeleton_id": item.get("skeleton_id"),
+        "generation_mode": item.get("generation_mode"),
+        "selected_reason": item.get("selected_reason"),
         "road_traversal": (item.get("checks") or {}).get("road_traversal") or {},
         "duration_seconds": item.get("duration_seconds"),
         "scores_from_evaluation": True,
@@ -250,6 +267,8 @@ def _journey_records(layout: LayoutResult) -> list[dict[str, Any]]:
 
 
 def _official_id(layout: LayoutResult) -> str:
+    if layout.generation_mode == "parallel_ladder" and (layout.site.metadata or {}).get("skeleton_id"):
+        return f"skeleton-{layout.site.metadata['skeleton_id']}"
     search = layout.layout_search if isinstance(layout.layout_search, dict) else {}
     if search.get("official_candidate_id"):
         return str(search["official_candidate_id"])

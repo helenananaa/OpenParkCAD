@@ -10,7 +10,7 @@ from shapely.geometry import Polygon as ShapelyPolygon
 
 from openparkcad.models import EntranceSpec, LayoutResult, ParkingAisle, ParkingStall, SiteSpec
 
-SUPPORTED_LOCK_KINDS = ("entrance", "main_aisle", "stall_group")
+SUPPORTED_LOCK_KINDS = ("entrance", "main_aisle", "road", "stall_group")
 _GEOM_TOLERANCE = 1e-6
 
 
@@ -245,7 +245,7 @@ def lock_site_conflicts(layout: LayoutResult, locks: list[LayoutLock]) -> list[d
     conflicts: list[dict[str, Any]] = []
     usable = available_area(layout.site)
     for lock in locks:
-        if lock.kind not in {"main_aisle", "stall_group"} or not lock.geometry:
+        if lock.kind not in {"main_aisle", "road", "stall_group"} or not lock.geometry:
             continue
         try:
             poly = ShapelyPolygon(lock.geometry)
@@ -311,8 +311,10 @@ def locks_satisfied(layout: LayoutResult, locks: list[LayoutLock]) -> tuple[bool
                 conflicts.append({"lock_id": lock.lock_id, "reason": "locked_entrance_width_changed", "object_id": lock.object_id})
             if lock.geometry and _points_mismatch(lock.geometry[:1], [entrance.center]):
                 conflicts.append({"lock_id": lock.lock_id, "reason": "locked_entrance_moved", "object_id": lock.object_id})
-        elif lock.kind == "main_aisle":
-            aisle = aisles.get(lock.object_id) or next((item for item in layout.aisles if item.role == "main"), None)
+        elif lock.kind in {"main_aisle", "road"}:
+            aisle = aisles.get(lock.object_id)
+            if aisle is None and lock.kind == "main_aisle":
+                aisle = next((item for item in layout.aisles if item.role == "main"), None)
             if aisle is None or lock.geometry is None or _polygon_mismatch(lock.geometry, aisle.polygon):
                 conflicts.append({"lock_id": lock.lock_id, "reason": "locked_main_aisle_geometry_changed", "object_id": lock.object_id})
             elif lock.directionality and aisle.directionality != lock.directionality:

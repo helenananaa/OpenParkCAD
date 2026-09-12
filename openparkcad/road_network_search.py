@@ -23,6 +23,13 @@ REPORT_VERSION = "road-network-search-1"
 OFFICIAL_GENERATION_MODE = "parallel_ladder"
 
 
+def _locks_valid(layout: LayoutResult) -> bool:
+    from openparkcad.layout_locks import generation_locks_from_site, lock_site_conflicts, locks_satisfied
+
+    locks = generation_locks_from_site(layout.site)
+    return locks_satisfied(layout, locks)[0] and not lock_site_conflicts(layout, locks)
+
+
 def road_network_requested(site: SiteSpec) -> bool:
     raw = (site.optimization or {}).get("road_network")
     if not isinstance(raw, dict):
@@ -67,7 +74,7 @@ def apply_road_network_search(site: SiteSpec, baseline: LayoutResult) -> LayoutR
         catalog = build_and_select_ladder_modules(site, candidate.skeleton, backend=backend)
         layout = layout_from_skeleton(site, candidate.skeleton, catalog.selected_stalls)
         layout = _finalize_candidate(layout)
-        valid = _layout_valid(layout)
+        valid = _layout_valid(layout) and _locks_valid(layout)
         row = _evaluated_skeleton_row(candidate, layout, catalog, valid, time.perf_counter() - item_started)
         evaluated.append(row)
         if not promotion:
@@ -76,11 +83,11 @@ def apply_road_network_search(site: SiteSpec, baseline: LayoutResult) -> LayoutR
         if not valid:
             row["selected_reason"] = "candidate_invalid"
             continue
-        if not _layout_valid(official) and valid:
+        if not (_layout_valid(official) and _locks_valid(official)) and valid:
             official = layout
             row["selected_reason"] = "recovered_feasible"
             continue
-        if _layout_valid(official) and score_total(layout) > score_total(official) + 1e-6:
+        if _layout_valid(official) and _locks_valid(official) and score_total(layout) > score_total(official) + 1e-6:
             official = layout
             row["selected_reason"] = "promoted"
         else:
@@ -147,6 +154,8 @@ def _incomplete_skeleton_row(candidate: Any) -> dict[str, Any]:
 
 
 def _evaluated_skeleton_row(candidate: Any, layout: LayoutResult, catalog: Any, valid: bool, elapsed: float) -> dict[str, Any]:
+    from openparkcad.review_bundle import snapshot_candidate_geometry
+
     road = layout.road_traversal_validation if isinstance(layout.road_traversal_validation, dict) else {}
     graph = layout.graph_validation if isinstance(layout.graph_validation, dict) else {}
     engineering = layout.engineering_validation if isinstance(layout.engineering_validation, dict) else {}
@@ -167,6 +176,8 @@ def _evaluated_skeleton_row(candidate: Any, layout: LayoutResult, catalog: Any, 
             failure = "candidate_invalid"
     return {
         "skeleton_id": candidate.skeleton.skeleton_id,
+        "geometry": snapshot_candidate_geometry(layout),
+        "generation_mode": layout.generation_mode,
         "family": candidate.skeleton.family,
         "source": "parallel_ladder",
         "prefilter_score": candidate.prefilter_score,
@@ -185,6 +196,7 @@ def _evaluated_skeleton_row(candidate: Any, layout: LayoutResult, catalog: Any, 
             "official_stall_count": len(catalog.selected_stalls),
         },
         "gates": {
+            "locks": _locks_valid(layout),
             "graph": graph.get("valid"),
             "vehicle": maneuver.get("valid"),
             "site_constraints": (layout.site_constraint_validation or {}).get("valid")

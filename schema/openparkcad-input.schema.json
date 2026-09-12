@@ -161,6 +161,7 @@
     "optimization": {
       "type": "object",
       "properties": {
+        "road_network": {"$ref": "#/$defs/roadNetwork"},
         "selector_num_workers": {
           "type": "integer",
           "minimum": 1,
@@ -184,6 +185,68 @@
   },
   "additionalProperties": true,
   "$defs": {
+    "roadNetwork": {
+      "description": "Explicit opt-in road-network search. Omitted fields use runtime defaults; null, unknown fields and unsupported loops are rejected.",
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "enabled": {
+          "type": "boolean",
+          "default": false
+        },
+        "families": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": [
+              "legacy",
+              "parallel_ladder"
+            ]
+          },
+          "minItems": 1,
+          "default": [
+            "legacy"
+          ]
+        },
+        "max_skeletons": {
+          "type": "integer",
+          "minimum": 1,
+          "default": 16
+        },
+        "dominant_axis_count": {
+          "type": "integer",
+          "minimum": 1,
+          "default": 2
+        },
+        "max_parallel_aisles": {
+          "type": "integer",
+          "minimum": 1,
+          "default": 6
+        },
+        "max_full_evaluations": {
+          "type": "integer",
+          "minimum": 1,
+          "default": 8
+        },
+        "refinement_budget_seconds": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "cross_aisle_policy": {
+          "type": "string",
+          "enum": [
+            "entry_end",
+            "both_ends"
+          ],
+          "default": "entry_end"
+        },
+        "allow_one_way_loop": {
+          "type": "boolean",
+          "const": false,
+          "default": false
+        }
+      }
+    },
     "point": {
       "type": "array",
       "prefixItems": [{"type": "number"}, {"type": "number"}],
