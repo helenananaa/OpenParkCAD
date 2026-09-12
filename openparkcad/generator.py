@@ -389,7 +389,7 @@ def _with_engineering_validation(layout: LayoutResult) -> LayoutResult:
     return layout
 
 
-def _finalize_candidate(layout: LayoutResult) -> LayoutResult:
+def _finalize_candidate(layout: LayoutResult, *, deadline: float | None = None) -> LayoutResult:
     filtered = apply_maneuver_filter(layout)
     before = [(stall.id, stall.stall_type_id, tuple(stall.polygon)) for stall in filtered.stalls]
     filtered = apply_contact_retarget(filtered)
@@ -399,7 +399,7 @@ def _finalize_candidate(layout: LayoutResult) -> LayoutResult:
     filtered = apply_contact_filter(filtered)
     validated = _with_site_constraint_validation(_with_graph_validation(filtered))
     validated = _with_operational_quality(validated)
-    validated = apply_road_traversal(validated)
+    validated = apply_road_traversal(validated, outer_deadline=deadline)
     return _with_score(_with_engineering_validation(validated))
 
 

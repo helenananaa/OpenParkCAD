@@ -61,21 +61,32 @@ def apply_road_network_search(site: SiteSpec, baseline: LayoutResult) -> LayoutR
     official = baseline
     started = time.perf_counter()
     exhausted = False
-    incomplete = 0
     for index, candidate in enumerate(ladder.candidates):
         if len(evaluated) >= max_full or (time.perf_counter() - started) >= budget_seconds:
             exhausted = True
             leftover = ladder.candidates[index:]
-            incomplete = len(leftover)
             for rest in leftover:
                 evaluated.append(_incomplete_skeleton_row(rest))
             break
         item_started = time.perf_counter()
         catalog = build_and_select_ladder_modules(site, candidate.skeleton, backend=backend)
         layout = layout_from_skeleton(site, candidate.skeleton, catalog.selected_stalls)
-        layout = _finalize_candidate(layout)
-        valid = _layout_valid(layout) and _locks_valid(layout)
+        repair = None
+        if config.repair.enabled:
+            from openparkcad.ladder_repair import repair_ladder_layout
+
+            layout, repair = repair_ladder_layout(layout, config.repair, backend=backend, deadline=started + budget_seconds)
+        else:
+            layout = _finalize_candidate(layout)
+        valid = _layout_valid(layout) and _locks_valid(layout) and (repair is None or repair["accepted"])
         row = _evaluated_skeleton_row(candidate, layout, catalog, valid, time.perf_counter() - item_started)
+        if repair is not None:
+            row["repair"] = repair
+            row["incomplete"] = repair["status"] == "incomplete"
+            row["modules"]["selected_stall_count_before_repair"] = len(catalog.selected_stalls)
+            row["modules"]["official_stall_count"] = layout.stall_count
+            if not repair["accepted"]:
+                row["failure_class"] = "repair_incomplete" if row["incomplete"] else "repair_failed"
         evaluated.append(row)
         if not promotion:
             row["selected_reason"] = "promotion_off"
@@ -106,10 +117,10 @@ def apply_road_network_search(site: SiteSpec, baseline: LayoutResult) -> LayoutR
             "retained": ladder.counts.get("retained", 0),
             "fully_evaluated": fully_evaluated,
             "verified": sum(1 for item in evaluated if item["valid"]),
-            "incomplete": incomplete,
+            "incomplete": sum(1 for item in evaluated if item.get("incomplete")),
         },
         "budget": {
-            "exhausted": exhausted,
+            "exhausted": exhausted or any(item.get("incomplete") for item in evaluated),
             "configured_seconds": budget_seconds,
             "elapsed_seconds": time.perf_counter() - started,
             "max_full_evaluations": max_full,

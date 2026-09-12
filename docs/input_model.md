@@ -1327,6 +1327,7 @@ represent the same contract and require no remote Schema resolution.
 | `refinement_budget_seconds` | Runtime fallback, normally `20` | Positive finite number |
 | `cross_aisle_policy` | `entry_end` | `entry_end`, `both_ends` |
 | `allow_one_way_loop` | `false` | Only `false`; loop generation remains unsupported |
+| `repair` | Disabled | Bounded occupied-stall selection repair; see [contract](dense_repair.md) |
 
 Omit optional fields to use defaults. Explicit nulls, unknown fields/families,
 booleans used as integers, and unsupported loop requests are rejected even when

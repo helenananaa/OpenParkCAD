@@ -27,6 +27,20 @@ _TEMPLATE_BUILDERS: dict[str, Callable[..., ReverseIn90Template]] = {
 }
 
 
+def _collision_sources(occupancy: OccupancySet, stall_id: str, evidence) -> dict[str, Any]:
+    # Match the exact obstacle ordering used by obstacles_excluding_stall and
+    # evaluate_motion. A static obstacle must never become a removable stall.
+    sources: list[str | None] = []
+    if not occupancy.hard_obstacles.is_empty:
+        sources.append(None)
+    sources.extend(key for key, geom in occupancy.stall_faces.items() if key != stall_id and not geom.is_empty)
+    indices = evidence.details.get("colliding_obstacle_indices") or []
+    return {
+        "blocking_stall_ids": sorted({sources[i] for i in indices if 0 <= i < len(sources) and sources[i] is not None}),
+        "hard_obstacle_collision": any(i < 0 or i >= len(sources) or sources[i] is None for i in indices),
+    }
+
+
 @dataclass(frozen=True)
 class ParkingMotion:
     valid: bool
@@ -147,7 +161,8 @@ def parking_motion_for_stall(
             stall.id,
             family,
             inbound_evidence.reason or "parking_inbound_collision",
-            {"collision_object": inbound_evidence.collision_object, "template": template.to_record()},
+            {"collision_object": inbound_evidence.collision_object, "template": template.to_record(),
+             **_collision_sources(occupancy, stall.id, inbound_evidence)},
         )
     if not poses_joinable(inbound_evidence.to_pose, template.final_pose):
         return _invalid(stall.id, family, "parking_inbound_pose_mismatch")
@@ -179,7 +194,8 @@ def parking_motion_for_stall(
             stall.id,
             family,
             outbound_evidence.reason or "parking_exit_collision",
-            {"collision_object": outbound_evidence.collision_object},
+            {"collision_object": outbound_evidence.collision_object,
+             **_collision_sources(occupancy, stall.id, outbound_evidence)},
         )
 
     reverse_distance = sum(abs(segment.distance) for segment in inbound if segment.distance < 0.0)

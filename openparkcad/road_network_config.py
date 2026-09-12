@@ -19,6 +19,7 @@ KNOWN_KEYS = frozenset(
         "refinement_budget_seconds",
         "cross_aisle_policy",
         "allow_one_way_loop",
+        "repair",
     }
 )
 DEFAULT_MAX_SKELETONS = 16
@@ -28,6 +29,14 @@ DEFAULT_MAX_FULL_EVALUATIONS = 8
 DEFAULT_REFINEMENT_BUDGET_SECONDS = 20.0
 DEFAULT_FAMILIES = ("legacy",)
 DEFAULT_POLICY = "entry_end"
+
+
+@dataclass(frozen=True)
+class RepairConfig:
+    enabled: bool = False
+    max_rounds: int = 3
+    time_budget_seconds: float = 30.0
+    min_retained_stalls: int = 1
 
 
 @dataclass(frozen=True)
@@ -41,6 +50,7 @@ class RoadNetworkConfig:
     refinement_budget_seconds: float | None = None
     cross_aisle_policy: str = DEFAULT_POLICY
     allow_one_way_loop: bool = False
+    repair: RepairConfig = RepairConfig()
 
 
 def parse_road_network_mapping(raw: Any) -> RoadNetworkConfig:
@@ -68,7 +78,29 @@ def parse_road_network_mapping(raw: Any) -> RoadNetworkConfig:
         refinement_budget_seconds=_optional_positive_finite(raw, "refinement_budget_seconds"),
         cross_aisle_policy=policy,
         allow_one_way_loop=False,
+        repair=parse_repair_mapping(raw["repair"]) if "repair" in raw else RepairConfig(),
     )
+
+
+def parse_repair_mapping(raw: Any) -> RepairConfig:
+    prefix = "optimization.road_network.repair"
+    if not isinstance(raw, dict):
+        raise ValueError(f"{prefix} must be an object")
+    unknown = sorted(set(raw) - {"enabled", "max_rounds", "time_budget_seconds", "min_retained_stalls"})
+    if unknown:
+        raise ValueError(f"{prefix} has unknown keys: {', '.join(unknown)}")
+    try:
+        return RepairConfig(
+            enabled=_optional_bool(raw, "enabled", False),
+            max_rounds=_optional_positive_int(raw, "max_rounds", 3),
+            time_budget_seconds=positive_finite_number(raw.get("time_budget_seconds", 30.0), field=f"{prefix}.time_budget_seconds"),
+            min_retained_stalls=_optional_positive_int(raw, "min_retained_stalls", 1),
+        )
+    except ValueError as exc:
+        message = str(exc)
+        if prefix not in message:
+            message = message.replace("optimization.road_network.", f"{prefix}.")
+        raise ValueError(message) from exc
 
 
 def _optional_bool(raw: dict[str, Any], key: str, default: bool) -> bool:

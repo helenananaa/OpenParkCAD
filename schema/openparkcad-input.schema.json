@@ -244,6 +244,32 @@
           "type": "boolean",
           "const": false,
           "default": false
+        },
+        "repair": {
+          "type": "object",
+          "additionalProperties": false,
+          "description": "Opt-in fixed-skeleton occupied-stall conflict repair; requires road traversal. Never changes stall dimensions or vehicle constraints.",
+          "properties": {
+            "enabled": {
+              "type": "boolean",
+              "default": false
+            },
+            "max_rounds": {
+              "type": "integer",
+              "minimum": 1,
+              "default": 3
+            },
+            "time_budget_seconds": {
+              "type": "number",
+              "exclusiveMinimum": 0,
+              "default": 30
+            },
+            "min_retained_stalls": {
+              "type": "integer",
+              "minimum": 1,
+              "default": 1
+            }
+          }
         }
       }
     },

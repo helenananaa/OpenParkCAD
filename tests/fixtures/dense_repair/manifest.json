@@ -1,0 +1,38 @@
+{
+  "version": "dense-repair-corpus-1",
+  "frozen_before_run": true,
+  "cases": [
+    {
+      "id": "rectangle",
+      "split": "development",
+      "path": "tests\\fixtures\\dense_repair\\rectangle.json",
+      "input_sha256": "172b1d0b3a71c78fdfd4e0b63949f36d33074e56828c4d16de1b80eee863e016",
+      "human_reference": null,
+      "expectation": "evaluate_without_preclaimed_success"
+    },
+    {
+      "id": "deeper_rectangle",
+      "split": "holdout",
+      "path": "tests\\fixtures\\dense_repair\\deeper_rectangle.json",
+      "input_sha256": "8e4b4f36aed954f269261c7916a559cb5b36c803841ed3e88cf115e6a03ba71c",
+      "human_reference": null,
+      "expectation": "evaluate_without_preclaimed_success"
+    },
+    {
+      "id": "l_shape",
+      "split": "holdout",
+      "path": "tests\\fixtures\\dense_repair\\l_shape.json",
+      "input_sha256": "00c9bd00b6a19d0b36844ac1c71e26253a3ca2dccb11d2f28dc78301a46be220",
+      "human_reference": null,
+      "expectation": "evaluate_without_preclaimed_success"
+    },
+    {
+      "id": "retention_floor",
+      "split": "negative",
+      "path": "tests\\fixtures\\dense_repair\\retention_floor.json",
+      "input_sha256": "de18d68507174428849e2419d5bf1b59c4734f1029f9fb9cee71253fe1cbb796",
+      "human_reference": null,
+      "expectation": "not_accepted"
+    }
+  ]
+}
