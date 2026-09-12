@@ -1,0 +1,132 @@
+{
+  "version": "dense-repair-qualification-1",
+  "date": "2026-09-12",
+  "runtime_commit": "ae4efc1",
+  "corpus_source": {
+    "commit": "bc4317b8369800ff3bece1ba68613aa19a9ef576",
+    "dirty": false,
+    "status": ""
+  },
+  "tests": {
+    "passed": 570,
+    "seconds": 1079.11,
+    "combined_coverage_percent": 84.10592922427935,
+    "minimum_coverage_percent": 80
+  },
+  "ruff": "All checks passed!",
+  "build": "passed",
+  "installed_wheel": {
+    "python": "E:\\CacheVault\\Temp\\openparkcad-dense-repair-20260912\\venv\\Scripts\\python.exe",
+    "package": "E:\\CacheVault\\Temp\\openparkcad-dense-repair-20260912\\venv\\Lib\\site-packages\\openparkcad\\__init__.py",
+    "wheel_sha256": "1930187508ae09ade0b7c0f0b761d96e30f447f06df1c8d17348f738d4483d58",
+    "matching_python_modules": 58,
+    "dependencies": {
+      "openparkcad": "0.3.0",
+      "shapely": "2.1.2",
+      "ezdxf": "1.4.4",
+      "ortools": "9.15.6755"
+    },
+    "stalls": 12,
+    "journey_coverage": 12,
+    "repair_selector": {
+      "requested": "cpsat",
+      "actual": "cpsat",
+      "status": "optimal",
+      "objective": 12.0,
+      "objective_bound": 12.0
+    },
+    "layout_identity": "05d7606fc3d1986f9e88d3745e4b6cf1728994fda73e77d95b64a992190ae9a0",
+    "output_hashes_verified": true,
+    "repair_schema_installed": true,
+    "human_review": "not_reviewed"
+  },
+  "installed_greedy": {
+    "status": "passed",
+    "stalls": 12
+  },
+  "corpus": {
+    "cells": 24,
+    "execution_errors": 0,
+    "cases": {
+      "rectangle": {
+        "input_stalls": 30,
+        "accepted_stalls": 12,
+        "repeats": 3,
+        "repaired_outcomes": [
+          "valid",
+          "valid",
+          "valid"
+        ],
+        "stable_layout_identity": true,
+        "median_seconds": {
+          "off": 7.90708690000065,
+          "on": 20.1908042999994
+        }
+      },
+      "deeper_rectangle": {
+        "input_stalls": 50,
+        "accepted_stalls": 20,
+        "repeats": 3,
+        "repaired_outcomes": [
+          "valid",
+          "valid",
+          "valid"
+        ],
+        "stable_layout_identity": true,
+        "median_seconds": {
+          "off": 10.288451700000223,
+          "on": 25.748232999999345
+        }
+      },
+      "l_shape": {
+        "input_stalls": 69,
+        "accepted_stalls": 27,
+        "repeats": 3,
+        "repaired_outcomes": [
+          "valid",
+          "valid",
+          "valid"
+        ],
+        "stable_layout_identity": true,
+        "median_seconds": {
+          "off": 14.147416300000259,
+          "on": 37.01131669999995
+        }
+      },
+      "retention_floor": {
+        "input_stalls": 30,
+        "accepted_stalls": 0,
+        "repeats": 3,
+        "repaired_outcomes": [
+          "not_accepted",
+          "not_accepted",
+          "not_accepted"
+        ],
+        "stable_layout_identity": true,
+        "median_seconds": {
+          "off": 6.396276200001012,
+          "on": 3.88550639999994
+        }
+      }
+    },
+    "timing_scope": "host_contended_descriptive_only"
+  },
+  "human_reference": "not_available_user_confirmed",
+  "scope": "synthetic_fixed_skeleton_and_fixed_vehicle_motion_conflicts",
+  "not_claimed": [
+    "site_global_optimum",
+    "real_site_capacity",
+    "human_CAD_parity",
+    "road_relocation",
+    "alternative_parking_motion_search"
+  ],
+  "artifact_hashes": {
+    "pytest.log": "fde9e0317643ff56f4426ba6c492f832c7edaf064b60bacf16ff38cd85caceac",
+    "coverage.json": "1a58f9f6c612737bde67a568d25e21488ae4e1648ec850659d8fe5dd164c0483",
+    "installed-wheel.json": "96ba376a94a26af4fa885302a3beafcff072c0f18904f85d997b9724f9318b12",
+    "corpus/summary.json": "17eefb497198ec70b30dc170bbf484e1fb4b94a3a0176f36a237a07afc25db63",
+    "report.json": "bbcca5c369835a71215342eadc77a74b983ef82f175ca50ec0ac13c7bfcfd2ac",
+    "review.json": "124af116d7d2aaec42a03f46489fa205544c6cbef5452b59a1b72ebb70945949",
+    "manifest.json": "93395f10b7d3d4c11d28744cf53b6e59704eaebf66fbcfede3de713e1af425f7"
+  }
+}

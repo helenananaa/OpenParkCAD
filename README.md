@@ -16,6 +16,11 @@ Schema validation, project source mappings and road locks, and frozen candidate
 geometry in the offline viewer. See [the local closeout record](docs/v0_5_closeout_20260912.md)
 for verification and the remaining dense-bay/field-validation boundaries.
 
+An opt-in [occupied-stall conflict repair loop](docs/dense_repair.md) can retain
+a compatible subset on a fixed ladder and revalidate every retained vehicle
+journey. It is qualified on three synthetic positive cases and a retention-floor
+negative case; it does not reposition roads or establish real-site capacity.
+
 The solver can currently:
 
 - read the documented JSON site model and separate active fields from parsed,

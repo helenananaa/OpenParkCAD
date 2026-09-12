@@ -1,7 +1,7 @@
 # Bounded occupied-stall conflict repair
 
-Status: first implementation; frozen synthetic corpus qualification is in
-progress. No human CAD reference is available. This does not establish a
+Status: implemented and locally qualified on 2026-09-12. No human CAD reference
+is available (confirmed by the user). This does not establish a
 site-global optimum, a density improvement, or general vehicle-path planning.
 
 ## Supported computation
@@ -61,6 +61,11 @@ the road-validation budget. A late or incomplete result cannot be promoted.
 These are cooperative in-process budgets, not preemption of arbitrary geometry
 operations. The corpus runner also imposes a worker-process hard timeout.
 
+`min_retained_stalls` limits repaired candidates, not every possible legacy
+fallback. It is not a global project parking quota. An unrepaired baseline is
+still assessed by the normal final gates, and reports remain explicit about
+whether any repair was accepted or promoted.
+
 Repair records live under each `layout_search.road_network_search.skeletons[]`
 row, alongside original module-selector provenance and final geometry. The
 repair graph optimizer has its own provenance; it does not replace the module
@@ -82,6 +87,35 @@ validation budget. The fixture manifest includes source hashes. "Accepted
 stalls" means the count of a layout that passes all checks; a rejected layout
 can still contain drawn stalls. Per-stall road coverage is reported separately.
 These comparisons do not replace a whole-site search benchmark.
+
+### 2026-09-12 qualification
+
+Runtime commit `ae4efc1`; corpus runner/check-out `bc4317b`. Full regression:
+**570 passed in 1079.11 seconds**, combined coverage **84.11%**, unchanged minimum
+**80%**. Ruff, wheel and sdist builds pass. A new external installed wheel under
+`python -I` reproduces 12/12 journeys with real CP-SAT (objective/bound 12/12),
+matching source modules, consistent report/review identities and verified output
+hashes. Explicit greedy mode in that wheel also retains 12/12, reported as a
+heuristic with no optimality bound.
+
+The fixed corpus completed **24/24 executions with zero errors/timeouts**.
+
+| Fixed ladder case | Candidate stalls | Road coverage without repair | Accepted stalls after repair | Repeated result |
+| --- | ---: | ---: | ---: | --- |
+| Development rectangle | 30 | 0/30 | 12, all journeys pass | 3/3 |
+| Deeper rectangle | 50 | 0/50 | 20, all journeys pass | 3/3 |
+| L-shaped case | 69 | 0/69 | 27, all journeys pass | 3/3 |
+| Rectangle, minimum retained count 30 | 30 | 0/30 | Rejected; minimum not weakened | 3/3 |
+
+Each case's repeated layout identities match. Repair medians were 20.19, 25.75,
+37.01 and 3.89 seconds respectively; these are descriptive measurements on a
+shared host, not isolated latency or whole-site solve guarantees. This is a
+selection-for-feasibility result: fewer stalls are retained, with unchanged
+dimensions and margins. The candidate counts are not valid parking capacities.
+
+Evidence: [compact qualification receipt](verification/dense_repair_20260912.json),
+`output/verification/dense-repair-20260912/corpus/summary.json`, individual cell
+records in the same directory, `installed-wheel.json`, and `cli-check.json`.
 
 Tests cover occupied-neighbor attribution, static obstacles, incompatible locks,
 retention floor, expired time/round budgets, missing optimizer fallback, invalid
