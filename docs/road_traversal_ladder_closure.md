@@ -1,5 +1,11 @@
 # Parallel-ladder journey closure (2026-09-08)
 
+Follow-up: the 2026-09-12 full regression passes **552 tests** with **84.07%**
+combined coverage, and a new isolated-wheel run reproduces 20/20 journeys.
+This supersedes the earlier incomplete full-suite verification described below,
+without expanding the supported fixture boundary. See
+[the integration/qualification record](v0_5_closeout_20260912.md).
+
 This is a bounded synthetic acceptance slice, not completion of the v0.5 N9
 matrix, field validation, or a general vehicle-path planner.
 

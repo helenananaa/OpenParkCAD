@@ -216,3 +216,17 @@ $wheelPython -I -m openparkcad solve examples/parallel_ladder_rect_site.json --o
 - 修复采样切点、直线/圆弧连接、局部与整段误差不一致、入口净深和端部停车留空、内移横通道的虚假入口关联。
 - 原 N-T01 密排案例不变；未宣称全部密排车位可用或真实场地收益；N9 总体验收仍未关闭。
 - 复现、支持边界及证据见 [journey closure](road_traversal_ladder_closure.md)。
+
+### 2026-09-12 integration and qualification
+
+- Preserved checkpoint `f5a4603`; N8 runtime integration `9cfe264`; isolated
+  matrix runner `9cca1da`.
+- Main Schema, project/source mappings, road locks, evaluated candidate geometry
+  and browser switching are implemented and verified.
+- Full regression: 552 passed; combined coverage 84.07%, threshold 80%.
+- Ruff/build, optimizer/default isolated wheels, 20/20 journeys, project
+  save/reopen/lock regeneration and four rollback paths pass.
+- The complete 1152-cell matrix is running on detached `9cca1da`; N9 remains
+  unaccepted. Dense-bay vehicle coverage and real sites remain open.
+- Details: [closeout record](v0_5_closeout_20260912.md),
+  [machine-readable receipt](verification/v0_5_closeout_20260912.json).
