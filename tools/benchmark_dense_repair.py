@@ -77,7 +77,7 @@ def main():
     (out / "plan.json").write_text(json.dumps(plan, indent=2))
     results = []
     for case in manifest["cases"]:
-        path = ROOT / case["path"]
+        path = ROOT / case["path"].replace("\\", "/")
         assert hashlib.sha256(path.read_bytes()).hexdigest() == case["input_sha256"]
         for repeat in range(1, 4):
             for mode in ["off", "on"]:
