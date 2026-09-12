@@ -57,6 +57,10 @@ def layout_from_skeleton(site: SiteSpec, skeleton: RoadSkeleton, stalls: list[Pa
     meta = dict(site.metadata or {})
     meta["skeleton_id"] = skeleton.skeleton_id
     meta["skeleton_family"] = skeleton.family
+    if skeleton.source.get("spacing_candidate_id"):
+        meta["spacing_candidate_id"] = skeleton.source["spacing_candidate_id"]
+    else:
+        meta.pop("spacing_candidate_id", None)
     return LayoutResult(
         site=replace(site, metadata=meta),
         stalls=list(stalls or []),

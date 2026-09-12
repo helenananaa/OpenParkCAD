@@ -1479,8 +1479,13 @@ def place_main_family_stalls(
     *,
     served_by_aisle_id: str,
     v_center: float = 0.0,
+    stall_gap_m: float = 0.0,
 ) -> list[ParkingStall]:
     """Place one stall family along a main/spine aisle (both sides)."""
+    if isinstance(stall_gap_m, bool) or not math.isfinite(stall_gap_m) or stall_gap_m < 0:
+        raise ValueError("stall_gap_m must be finite and nonnegative")
+    if stall_gap_m and stall_spec.family != "perpendicular":
+        raise ValueError("stall_gap_m currently supports perpendicular stalls only")
     probe = replace(site, stall=stall_spec, main_stall=stall_spec)
     return _stalls_along_main_aisle(
         probe,
@@ -1491,6 +1496,7 @@ def place_main_family_stalls(
         end_u,
         served_by_aisle_id=served_by_aisle_id,
         v_center=v_center,
+        stall_gap_m=stall_gap_m,
     )
 
 
@@ -1504,6 +1510,7 @@ def _stalls_along_main_aisle(
     *,
     served_by_aisle_id: str = "A-MAIN",
     v_center: float = 0.0,
+    stall_gap_m: float = 0.0,
 ) -> list[ParkingStall]:
     stall_spec = _main_stall(site)
     if stall_spec.family == "t_end":
@@ -1556,7 +1563,7 @@ def _stalls_along_main_aisle(
                         stall_type_id=stall_spec.id,
                     )
                 )
-        u += stall_spec.width
+        u += stall_spec.width + stall_gap_m
     return stalls
 
 

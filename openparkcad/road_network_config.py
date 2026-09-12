@@ -20,6 +20,7 @@ KNOWN_KEYS = frozenset(
         "cross_aisle_policy",
         "allow_one_way_loop",
         "repair",
+        "spacing_search",
     }
 )
 DEFAULT_MAX_SKELETONS = 16
@@ -40,6 +41,15 @@ class RepairConfig:
 
 
 @dataclass(frozen=True)
+class SpacingSearchConfig:
+    enabled: bool = False
+    inter_aisle_gaps_m: tuple[float, ...] | None = None
+    stall_gaps_m: tuple[float, ...] | None = None
+    max_variants: int = 4
+    stop_after_improvement: bool = True
+
+
+@dataclass(frozen=True)
 class RoadNetworkConfig:
     enabled: bool = False
     families: tuple[str, ...] = DEFAULT_FAMILIES
@@ -51,6 +61,7 @@ class RoadNetworkConfig:
     cross_aisle_policy: str = DEFAULT_POLICY
     allow_one_way_loop: bool = False
     repair: RepairConfig = RepairConfig()
+    spacing_search: SpacingSearchConfig = SpacingSearchConfig()
 
 
 def parse_road_network_mapping(raw: Any) -> RoadNetworkConfig:
@@ -79,7 +90,37 @@ def parse_road_network_mapping(raw: Any) -> RoadNetworkConfig:
         cross_aisle_policy=policy,
         allow_one_way_loop=False,
         repair=parse_repair_mapping(raw["repair"]) if "repair" in raw else RepairConfig(),
+        spacing_search=parse_spacing_mapping(raw["spacing_search"]) if "spacing_search" in raw else SpacingSearchConfig(),
     )
+
+
+def parse_spacing_mapping(raw: Any) -> SpacingSearchConfig:
+    prefix = "optimization.road_network.spacing_search"
+    if not isinstance(raw, dict):
+        raise ValueError(f"{prefix} must be an object")
+    keys = {"enabled", "inter_aisle_gaps_m", "stall_gaps_m", "max_variants", "stop_after_improvement"}
+    if set(raw) - keys:
+        raise ValueError(f"{prefix} has unknown keys")
+    def gaps(key):
+        if key not in raw:
+            return None
+        values = raw[key]
+        if not isinstance(values, list) or not 1 <= len(values) <= 8:
+            raise ValueError(f"{prefix}.{key} must be an array with 1 to 8 gaps")
+        if any(isinstance(x, bool) or not isinstance(x, int | float) or not math.isfinite(x) or x < 0 for x in values):
+            raise ValueError(f"{prefix}.{key} must contain finite nonnegative numbers")
+        return tuple(sorted({0.0, *(float(x) for x in values)}))
+    try:
+        return SpacingSearchConfig(
+            enabled=_optional_bool(raw, "enabled", False), inter_aisle_gaps_m=gaps("inter_aisle_gaps_m"),
+            stall_gaps_m=gaps("stall_gaps_m"), max_variants=_optional_positive_int(raw, "max_variants", 4),
+            stop_after_improvement=_optional_bool(raw, "stop_after_improvement", True),
+        )
+    except ValueError as exc:
+        message = str(exc)
+        if prefix not in message:
+            message = message.replace("optimization.road_network.", f"{prefix}.")
+        raise ValueError(message) from exc
 
 
 def parse_repair_mapping(raw: Any) -> RepairConfig:

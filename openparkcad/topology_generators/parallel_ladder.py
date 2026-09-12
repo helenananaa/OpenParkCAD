@@ -47,6 +47,7 @@ class LadderCandidate:
     axis_degrees: float
     aisle_count: int
     policy: str
+    candidate_id: str | None = None
 
 
 @dataclass
@@ -148,7 +149,8 @@ def generate_parallel_ladder_skeletons(
 
 def _candidate_axes(site: SiteSpec, usable: BaseGeometry, limit: int) -> list[tuple[tuple[float, float], float]]:
     entrance = site.entrances[0]
-    axes: list[tuple[tuple[float, float], float]] = [(entrance.center, float(entrance.heading_degrees) % 180.0)]
+    entrance_heading = float(entrance.heading_degrees) % 360.0
+    axes: list[tuple[tuple[float, float], float]] = [(entrance.center, entrance_heading)]
     minx, miny, maxx, maxy = usable.bounds
     axes.append((entrance.center, 0.0 if (maxx - minx) >= (maxy - miny) else 90.0))
     rectangle = usable.minimum_rotated_rectangle
@@ -157,14 +159,16 @@ def _candidate_axes(site: SiteSpec, usable: BaseGeometry, limit: int) -> list[tu
         heading = (math.degrees(math.atan2(coords[1][1] - coords[0][1], coords[1][0] - coords[0][0])) + 360.0) % 180.0
         axes.append((entrance.center, heading))
     unique: list[tuple[tuple[float, float], float]] = []
-    for origin, heading in axes:
-        heading = heading % 180.0
+    for index, (origin, heading) in enumerate(axes):
+        heading = heading % 360.0
+        if index and math.cos(math.radians(heading - entrance_heading)) < -1e-9:
+            heading = (heading + 180.0) % 360.0
         if any(min(abs(heading - other[1]) % 180.0, 180.0 - abs(heading - other[1]) % 180.0) < 8.0 for other in unique):
             continue
         unique.append((origin, heading))
         if len(unique) >= limit:
             break
-    return unique[:limit] or [(entrance.center, float(entrance.heading_degrees) % 180.0)]
+    return unique[:limit] or [(entrance.center, entrance_heading)]
 
 
 def _build_one(

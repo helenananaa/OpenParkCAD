@@ -86,6 +86,43 @@
           "default": 1
         }
       }
+    },
+    "spacing_search": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "enabled": {
+          "type": "boolean",
+          "default": false
+        },
+        "inter_aisle_gaps_m": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 8,
+          "items": {
+            "type": "number",
+            "minimum": 0
+          }
+        },
+        "stall_gaps_m": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 8,
+          "items": {
+            "type": "number",
+            "minimum": 0
+          }
+        },
+        "max_variants": {
+          "type": "integer",
+          "minimum": 1,
+          "default": 4
+        },
+        "stop_after_improvement": {
+          "type": "boolean",
+          "default": true
+        }
+      }
     }
   }
 }

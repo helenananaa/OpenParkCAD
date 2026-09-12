@@ -215,6 +215,8 @@ def layout_from_project_state(state: ProjectState) -> LayoutResult | None:
     metadata = deepcopy(site.metadata)
     if mapping.get("skeleton_id"):
         metadata.update(skeleton_id=mapping["skeleton_id"], skeleton_family=mapping["family"])
+    if mapping.get("spacing_candidate_id"):
+        metadata["spacing_candidate_id"] = mapping["spacing_candidate_id"]
     site = replace(
         site,
         metadata=metadata,

@@ -25,6 +25,7 @@ def official_skeleton_mapping(layout: LayoutResult) -> dict[str, Any]:
             "source_segment_id": stall.served_by_aisle_id,
         }
     return {
+        **({"spacing_candidate_id": meta["spacing_candidate_id"]} if meta.get("spacing_candidate_id") else {}),
         "version": "skeleton-object-mapping-1",
         "skeleton_version": ROAD_SKELETON_VERSION,
         "skeleton_id": meta.get("skeleton_id"),

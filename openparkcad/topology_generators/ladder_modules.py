@@ -124,6 +124,7 @@ def _modules_for_segment(site: SiteSpec, skeleton: RoadSkeleton, segment, usable
         length,
         served_by_aisle_id=segment.id,
         v_center=0.0,
+        stall_gap_m=float(skeleton.source.get("stall_gap_m", 0.0)),
     )
     junction_points = [node.point for node in skeleton.nodes if node.kind in {"junction", "entrance_port"}]
     clearance = segment.width / 2.0

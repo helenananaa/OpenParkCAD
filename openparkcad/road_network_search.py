@@ -60,6 +60,10 @@ def apply_road_network_search(site: SiteSpec, baseline: LayoutResult) -> LayoutR
     evaluated = []
     official = baseline
     started = time.perf_counter()
+    from openparkcad.topology_generators.ladder_spacing import expand_spacing_candidates
+
+    ladder, spacing = expand_spacing_candidates(site, ladder, config.spacing_search, deadline=started + budget_seconds)
+    best_verified_score = score_total(baseline) if _layout_valid(baseline) and _locks_valid(baseline) else None
     exhausted = False
     for index, candidate in enumerate(ladder.candidates):
         if len(evaluated) >= max_full or (time.perf_counter() - started) >= budget_seconds:
@@ -77,8 +81,12 @@ def apply_road_network_search(site: SiteSpec, baseline: LayoutResult) -> LayoutR
 
             layout, repair = repair_ladder_layout(layout, config.repair, backend=backend, deadline=started + budget_seconds)
         else:
-            layout = _finalize_candidate(layout)
+            layout = (_finalize_candidate(layout, deadline=started + budget_seconds)
+                      if spacing is not None else _finalize_candidate(layout))
         valid = _layout_valid(layout) and _locks_valid(layout) and (repair is None or repair["accepted"])
+        spacing_deadline_hit = spacing is not None and time.perf_counter() >= started + budget_seconds
+        if spacing_deadline_hit:
+            valid = False
         row = _evaluated_skeleton_row(candidate, layout, catalog, valid, time.perf_counter() - item_started)
         if repair is not None:
             row["repair"] = repair
@@ -87,24 +95,35 @@ def apply_road_network_search(site: SiteSpec, baseline: LayoutResult) -> LayoutR
             row["modules"]["official_stall_count"] = layout.stall_count
             if not repair["accepted"]:
                 row["failure_class"] = "repair_incomplete" if row["incomplete"] else "repair_failed"
+        if spacing_deadline_hit:
+            row.update(incomplete=True, failure_class="budget_exhausted")
         evaluated.append(row)
+        improved = valid and (best_verified_score is None or score_total(layout) > best_verified_score + 1e-6)
+        if improved:
+            best_verified_score = score_total(layout)
         if not promotion:
             row["selected_reason"] = "promotion_off"
-            continue
-        if not valid:
+        elif not valid:
             row["selected_reason"] = "candidate_invalid"
-            continue
-        if not (_layout_valid(official) and _locks_valid(official)) and valid:
+        elif not (_layout_valid(official) and _locks_valid(official)):
             official = layout
             row["selected_reason"] = "recovered_feasible"
-            continue
-        if _layout_valid(official) and _locks_valid(official) and score_total(layout) > score_total(official) + 1e-6:
+        elif score_total(layout) > score_total(official) + 1e-6:
             official = layout
             row["selected_reason"] = "promoted"
         else:
             row["selected_reason"] = "valid_not_better"
+        if (spacing is not None and config.spacing_search.stop_after_improvement and improved
+                and candidate.skeleton.source.get("spacing_version")):
+            spacing["stopped_after_improvement"] = True
+            for rest in ladder.candidates[index + 1:]:
+                skipped = _incomplete_skeleton_row(rest)
+                skipped.update(incomplete=False, not_evaluated=True, selected_reason="spacing_first_improvement_stop",
+                               failure_class=None)
+                evaluated.append(skipped)
+            break
 
-    fully_evaluated = sum(1 for item in evaluated if not item.get("incomplete"))
+    fully_evaluated = sum(1 for item in evaluated if not item.get("incomplete") and not item.get("not_evaluated"))
     report = {
         "version": REPORT_VERSION,
         "requested": True,
@@ -130,6 +149,9 @@ def apply_road_network_search(site: SiteSpec, baseline: LayoutResult) -> LayoutR
         "baseline_retained": official is baseline or official.generation_mode != OFFICIAL_GENERATION_MODE,
         "official_mapping": official_skeleton_mapping(official) if official.generation_mode == OFFICIAL_GENERATION_MODE else None,
     }
+    if spacing is not None:
+        report["spacing_search"] = spacing
+        report["counts"]["not_evaluated"] = sum(1 for row in evaluated if row.get("not_evaluated"))
     return _with_report(official, report)
 
 
@@ -147,6 +169,7 @@ def _refinement_budget_seconds(site: SiteSpec, config: RoadNetworkConfig) -> flo
 
 def _incomplete_skeleton_row(candidate: Any) -> dict[str, Any]:
     return {
+        "candidate_id": candidate.candidate_id or f"skeleton-{candidate.skeleton.skeleton_id}",
         "skeleton_id": candidate.skeleton.skeleton_id,
         "family": candidate.skeleton.family,
         "source": "parallel_ladder",
@@ -188,6 +211,10 @@ def _evaluated_skeleton_row(candidate: Any, layout: LayoutResult, catalog: Any, 
     return {
         "skeleton_id": candidate.skeleton.skeleton_id,
         "geometry": snapshot_candidate_geometry(layout),
+        "candidate_id": candidate.candidate_id or f"skeleton-{candidate.skeleton.skeleton_id}",
+        "spacing": {key: candidate.skeleton.source.get(key) for key in
+                    ("base_skeleton_id", "inter_aisle_gap_m", "stall_gap_m")}
+        if candidate.skeleton.source.get("spacing_version") else None,
         "generation_mode": layout.generation_mode,
         "family": candidate.skeleton.family,
         "source": "parallel_ladder",

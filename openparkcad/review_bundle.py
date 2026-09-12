@@ -36,12 +36,12 @@ def build_review_bundle(
         candidates.append(_search_candidate_snapshot(item, official_id))
     network = search.get("road_network_search") or {}
     for row in network.get("skeletons") or []:
-        candidate_id = f"skeleton-{row['skeleton_id']}"
+        candidate_id = row.get("candidate_id") or f"skeleton-{row['skeleton_id']}"
         if candidate_id == official_id:
             continue
         item = {
             **row, "candidate_id": candidate_id,
-            "not_evaluated": row.get("incomplete", False),
+            "not_evaluated": row.get("incomplete", False) or row.get("not_evaluated", False),
             "official_score_total": row.get("score_total"),
             "duration_seconds": row.get("elapsed_seconds"), "checks": row.get("gates") or {},
         }
@@ -267,6 +267,8 @@ def _journey_records(layout: LayoutResult) -> list[dict[str, Any]]:
 
 
 def _official_id(layout: LayoutResult) -> str:
+    if layout.generation_mode == "parallel_ladder" and (layout.site.metadata or {}).get("spacing_candidate_id"):
+        return str(layout.site.metadata["spacing_candidate_id"])
     if layout.generation_mode == "parallel_ladder" and (layout.site.metadata or {}).get("skeleton_id"):
         return f"skeleton-{layout.site.metadata['skeleton_id']}"
     search = layout.layout_search if isinstance(layout.layout_search, dict) else {}

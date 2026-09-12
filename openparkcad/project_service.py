@@ -300,6 +300,8 @@ class ProjectService:
 
         mapping = official_skeleton_mapping(layout)
         if mapping.get("skeleton_id") and layout.generation_mode == "parallel_ladder":
+            from openparkcad.layout_locks import _polygon_mismatch
+            current_locks = [parse_lock(item) for item in self.state.revisions[-1].locks] if self.state.revisions else []
             # S-* / P-* are local to a skeleton; identical slots in a different
             # skeleton must not silently reuse an unrelated project's object.
             for item in [*layout.aisles, *layout.stalls]:
@@ -307,6 +309,12 @@ class ProjectService:
                 identity = [mapping["skeleton_id"], item.id, item.polygon]
                 digest = hashlib.sha256(json.dumps(identity, sort_keys=True).encode()).hexdigest()[:24]
                 project_id = f"project:{source['kind']}:{digest}"
+                for lock in current_locks:
+                    if (lock.project_object_id and lock.geometry and lock.kind in {"road", "main_aisle"}
+                            and source["kind"] == "aisle" and lock.object_id == item.id
+                            and not _polygon_mismatch(lock.geometry, item.polygon)):
+                        project_id = lock.project_object_id
+                        break
                 self.state.object_ids[item.id] = project_id
                 self.state.object_sources[project_id] = {
                     "official_object_id": item.id, "skeleton_id": mapping["skeleton_id"],
