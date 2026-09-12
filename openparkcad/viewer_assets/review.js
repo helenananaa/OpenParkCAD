@@ -8,6 +8,22 @@
   const candidates = bundle.candidates || [];
   let current = 0;
   let view = { x: 0, y: 0, scale: 1 };
+  let animationTimer = null;
+
+  function currentEvidence() {
+    const candidate = candidates[current] || {};
+    const matches = candidate.official === true
+      && typeof candidate.candidate_id === "string"
+      && candidate.candidate_id === (bundle.official || {}).candidate_id;
+    return {
+      journeys: matches ? (bundle.journeys || []) : [],
+      failures: matches ? (bundle.failures || []) : []
+    };
+  }
+  function stopAnimation() {
+    if (animationTimer !== null) clearInterval(animationTimer);
+    animationTimer = null;
+  }
 
   function escapeAttr(value) {
     return String(value)
@@ -38,7 +54,11 @@
     return { minX: Math.min.apply(null, xs), minY: Math.min.apply(null, ys), maxX: Math.max.apply(null, xs), maxY: Math.max.apply(null, ys) };
   }
   function render() {
+    stopAnimation();
+    details.removeAttribute("data-selected");
     const candidate = candidates[current] || { geometry: { aisles: [], stalls: [] }, status: "not_solved" };
+    const evidence = currentEvidence();
+    document.getElementById("play-journey").disabled = evidence.journeys.length === 0;
     const b = boundsOf(candidate);
     const pad = 3;
     const w = Math.max(b.maxX - b.minX, 1) + pad * 2;
@@ -70,7 +90,7 @@
       });
     }
     if (document.getElementById("layer-journeys").checked) {
-      (bundle.journeys || []).forEach(function (j) {
+      evidence.journeys.forEach(function (j) {
         const traj = (j.trajectory || []).map(function (p) {
           if (Array.isArray(p)) return tx(p);
           return tx([p.x, p.y]);
@@ -81,19 +101,19 @@
       });
     }
     if (document.getElementById("layer-failures").checked) {
-      (bundle.failures || []).forEach(function (f) {
+      evidence.failures.forEach(function (f) {
         html += '<text class="fail" x="2" y="2" font-size="1.2" data-object-id="' + escapeAttr(f.object_id || "") + '">' + escapeText(f.object_id || f.reason || "fail") + "</text>";
       });
     }
     html += '<circle id="vehicle-marker" class="vehicle" r="0.4" visibility="hidden"/>';
     scene.innerHTML = html;
-    statusLine.textContent = "candidate " + (candidate.candidate_id || "?") + " status=" + (candidate.status || "?") + " stalls=" + (candidate.stall_count || 0);
+    statusLine.textContent = "candidate " + (candidate.candidate_id || "?") + " status=" + (candidate.status || "?") + " stalls=" + (candidate.stall_count == null ? "not_evaluated" : candidate.stall_count);
     if (skeletonLine) {
       skeletonLine.textContent = "family=" + (candidate.family || (bundle.official || {}).family || "-")
         + " skeleton=" + (candidate.skeleton_id || (bundle.official || {}).skeleton_id || "-")
         + " mode=" + (candidate.generation_mode || (bundle.official || {}).generation_mode || "-");
     }
-    const failedJunctions = (bundle.failures || []).filter(function (f) {
+    const failedJunctions = evidence.failures.filter(function (f) {
       const reason = String(f.reason || f.kind || "");
       return reason.indexOf("junction") >= 0 || reason.indexOf("undeclared") >= 0;
     });
@@ -128,27 +148,30 @@
     const objectId = target.getAttribute("data-object-id") || target.getAttribute("data-stall-id");
     if (!objectId) return;
     target.classList.add("fail");
-    const fail = (bundle.failures || []).find(function (f) { return f.object_id === objectId; });
-    const journey = (bundle.journeys || []).find(function (j) { return j.stall_id === objectId; });
+    const evidence = currentEvidence();
+    const fail = evidence.failures.find(function (f) { return f.object_id === objectId; });
+    const journey = evidence.journeys.find(function (j) { return j.stall_id === objectId; });
     details.textContent = JSON.stringify({ selected: objectId, failure: fail || null, journey: journey || null }, null, 2);
     details.setAttribute("data-selected", objectId);
   });
   document.getElementById("play-journey").addEventListener("click", function () {
+    stopAnimation();
     const selected = details.getAttribute("data-selected");
-    const journey = (bundle.journeys || []).find(function (j) { return j.stall_id === selected; }) || (bundle.journeys || [])[0];
+    const journeys = currentEvidence().journeys;
+    const journey = journeys.find(function (j) { return j.stall_id === selected; }) || journeys[0];
     if (!journey || !journey.trajectory || !journey.trajectory.length) return;
     const marker = document.getElementById("vehicle-marker");
     const b = boundsOf(candidates[current]);
     const pad = 3;
     let i = 0;
     marker.setAttribute("visibility", "visible");
-    const timer = setInterval(function () {
+    animationTimer = setInterval(function () {
       const p = journey.trajectory[i];
       const xy = Array.isArray(p) ? p : [p.x, p.y];
       marker.setAttribute("cx", String(xy[0] - b.minX + pad));
       marker.setAttribute("cy", String(b.maxY - xy[1] + pad));
       i += 1;
-      if (i >= journey.trajectory.length) clearInterval(timer);
+      if (i >= journey.trajectory.length) stopAnimation();
     }, 40);
   });
   let drag = null;
