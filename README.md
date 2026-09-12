@@ -21,6 +21,11 @@ a compatible subset on a fixed ladder and revalidate every retained vehicle
 journey. It is qualified on three synthetic positive cases and a retention-floor
 negative case; it does not reposition roads or establish real-site capacity.
 
+An additional opt-in [spacing search](docs/spacing_search.md) can rebuild road
+spacing and repack unchanged-size stalls, then revalidate the result. It improves
+the three fixed synthetic cases from 12/20/27 to 24/40/56 verified stalls; this is
+a bounded best-found search, not a real-site or global-optimality claim.
+
 The solver can currently:
 
 - read the documented JSON site model and separate active fields from parsed,

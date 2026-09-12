@@ -1,5 +1,7 @@
 # Current status
 
+The [spacing-search qualification](spacing_search.md) adds opt-in road-gap changes and stall repacking, with 592 passing tests and a 24-cell synthetic comparison. Verified stalls improved from 12/20/27 to 24/40/56 on the three fixed positive cases. This is bounded search, not field validation or a global optimum.
+
 The 2026-09-12 local integration adds the main road-network Schema, persisted
 skeleton/object mappings, road locks across save/reopen/regenerate, and frozen
 geometry for evaluated ladder candidates in the offline viewer. Browser
