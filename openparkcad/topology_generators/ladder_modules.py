@@ -126,10 +126,20 @@ def _modules_for_segment(site: SiteSpec, skeleton: RoadSkeleton, segment, usable
         v_center=0.0,
     )
     junction_points = [node.point for node in skeleton.nodes if node.kind in {"junction", "entrance_port"}]
+    clearance = segment.width / 2.0
+    from openparkcad.road_traversal_models import parse_traversal_policy
+    from openparkcad.vehicle_kinematics import rear_axle_turning_radius
+
+    if parse_traversal_policy(site).requested and site.vehicle is not None:
+        radius = rear_axle_turning_radius(site.vehicle).rear_axle_radius
+        if radius is not None:
+            # A reverse-in start is displaced one radius along the aisle;
+            # retain another radius before the road turn's tangent point.
+            clearance = max(clearance, 2.0 * radius)
     kept = []
     for stall in stalls:
         poly = ShapelyPolygon(stall.polygon)
-        if any(poly.distance(ShapelyPoint(point)) < segment.width / 2.0 for point in junction_points):
+        if any(poly.distance(ShapelyPoint(point)) < clearance for point in junction_points):
             continue
         kept.append(
             ParkingStall(

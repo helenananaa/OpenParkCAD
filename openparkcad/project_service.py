@@ -22,10 +22,11 @@ from openparkcad.models import LayoutResult, site_from_dict
 from openparkcad.project_model import (
     ProjectRevision,
     ProjectState,
+    accepted_layout_snapshot,
     input_digest,
+    layout_from_project_state,
     site_dict_from_layout,
 )
-from openparkcad.review_bundle import snapshot_candidate_geometry
 
 
 GenerateFn = Callable[..., LayoutResult]
@@ -48,7 +49,7 @@ class ProjectService:
         self._lock = threading.Lock()
         self._active_revision: int | None = None
         self._cancel = threading.Event()
-        self.last_accepted: LayoutResult | None = None
+        self.last_accepted: LayoutResult | None = layout_from_project_state(self.state)
 
     def accept_layout(self, layout: LayoutResult, *, site: dict[str, Any] | None = None, locks: list[dict[str, Any]] | None = None) -> int:
         with self._lock:
@@ -61,7 +62,7 @@ class ProjectService:
                 ProjectRevision(revision=revision, site=site_payload, locks=lock_payload, input_digest=digest, accepted_layout_ref=f"rev-{revision}")
             )
             self.state.accepted_site = site_payload
-            self.state.accepted_layout = snapshot_candidate_geometry(layout)
+            self.state.accepted_layout = accepted_layout_snapshot(layout)
             self._remember_object_ids(layout)
             self.last_accepted = layout
             self._push_history()
@@ -177,7 +178,7 @@ class ProjectService:
                 return False
             if result.status == "accepted" and result.layout is not None:
                 self.last_accepted = result.layout
-                self.state.accepted_layout = snapshot_candidate_geometry(result.layout)
+                self.state.accepted_layout = accepted_layout_snapshot(result.layout)
                 return True
             return False
 
@@ -192,10 +193,7 @@ class ProjectService:
             self.state.redo_stack.append(current)
             previous = self.state.undo_stack[-1]
             restored = _state_from_record(previous)
-            self.state.revisions = restored.revisions
-            self.state.current_revision = restored.current_revision
-            self.state.accepted_layout = restored.accepted_layout
-            self.state.object_ids = restored.object_ids
+            self._apply_restored_state(restored)
 
     def redo(self) -> None:
         with self._lock:
@@ -205,10 +203,7 @@ class ProjectService:
             nxt = self.state.redo_stack.pop()
             self.state.undo_stack.append(current)
             restored = _state_from_record(nxt)
-            self.state.revisions = restored.revisions
-            self.state.current_revision = restored.current_revision
-            self.state.accepted_layout = restored.accepted_layout
-            self.state.object_ids = restored.object_ids
+            self._apply_restored_state(restored)
 
     def export_accepted(self) -> LayoutResult:
         if self.last_accepted is None:
@@ -251,7 +246,7 @@ class ProjectService:
             if revision != self.state.current_revision or digest != self.state.revisions[-1].input_digest:
                 return TaskResult(revision=revision, input_digest=digest, status="stale", layout=self.last_accepted)
             self.last_accepted = layout
-            self.state.accepted_layout = snapshot_candidate_geometry(layout)
+            self.state.accepted_layout = accepted_layout_snapshot(layout)
             self.state.revisions[-1].accepted_layout_ref = f"rev-{revision}"
             self._remember_object_ids(layout)
             return TaskResult(revision=revision, input_digest=digest, status="accepted", layout=layout)
@@ -262,6 +257,14 @@ class ProjectService:
                 result.status = "stale"
                 result.layout = self.last_accepted
             return result
+
+    def _apply_restored_state(self, restored: ProjectState) -> None:
+        self.state.revisions = restored.revisions
+        self.state.current_revision = restored.current_revision
+        self.state.accepted_site = restored.accepted_site
+        self.state.accepted_layout = restored.accepted_layout
+        self.state.object_ids = restored.object_ids
+        self.last_accepted = layout_from_project_state(self.state)
 
     def _remember_object_ids(self, layout: LayoutResult) -> None:
         for aisle in layout.aisles:

@@ -5,9 +5,11 @@ It is intentionally conservative: each phase should produce something that can
 be inspected, tested, and explained before the next layer is added.
 
 For the next development iteration, use the
-[v0.4 benchmark and multi-spine execution plan](v0_4_multi_spine_execution_plan.md).
-That plan lists pending implementation steps, contracts, commands, and acceptance
-criteria; the historical implementation slices below provide context.
+[next five stages execution plan](next_stages_execution_plan.md), starting with
+road-level vehicle traversal. It lists planned implementation steps, contracts,
+commands, and acceptance criteria. E0–E9 of the
+[v0.4 multi-spine plan](v0_4_multi_spine_execution_plan.md) are implemented;
+the historical implementation slices below provide context.
 
 ## Guiding Rule
 

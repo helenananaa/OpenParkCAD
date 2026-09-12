@@ -12,6 +12,7 @@ from openparkcad.models import LayoutResult, SiteSpec, VehicleSpec, is_articulat
 from openparkcad.vehicle_kinematics import MotionSegment, VehiclePose
 
 ALGORITHM_VERSION = "road-traversal-1"
+TEMPLATE_REVISION = "orthogonal-tangents-2"
 DEFAULT_TIME_BUDGET_SECONDS = 10.0
 POSITION_TOLERANCE_M = 1e-3
 HEADING_TOLERANCE_DEGREES = 0.05
@@ -215,6 +216,7 @@ class RoadTraversalResult:
     def to_record(self) -> dict[str, Any]:
         return {
             "version": self.algorithm_version,
+            **({"template_revision": TEMPLATE_REVISION} if self.requested else {}),
             "layout_identity": self.layout_identity,
             "requested": self.requested,
             "executed": self.executed,
@@ -348,6 +350,7 @@ def layout_traversal_identity(layout: LayoutResult, policy: TraversalPolicy) -> 
     vehicle = layout.site.vehicle
     payload = {
         "algorithm_version": policy.algorithm_version,
+        **({"template_revision": TEMPLATE_REVISION} if policy.requested else {}),
         "scope": policy.scope,
         "requested": policy.requested,
         "position_tolerance_m": policy.position_tolerance_m,

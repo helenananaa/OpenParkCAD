@@ -12,7 +12,8 @@ Start with the [project README](../README.md) for setup and a first solve.
 | What does vehicle and constraint validation mean? | [v0.3 vehicle and constraint contract](v0.3_vehicle_and_constraints.md) |
 | How do candidate selection and stall modules work? | [v0.4 discrete candidate contract](v0_4_discrete_candidates.md) |
 | What remains to be built? | [Roadmap](roadmap.md) |
-| How do I execute the next development iteration step by step? | [v0.4 benchmark and multi-spine execution plan](v0_4_multi_spine_execution_plan.md) (E0–E9 implemented; §12 later) |
+| How do I execute the next development stages step by step? | [Next five stages execution plan](next_stages_execution_plan.md) (planned; start with road traversal R1–R4) |
+| How was the multi-spine iteration implemented? | [v0.4 benchmark and multi-spine execution plan](v0_4_multi_spine_execution_plan.md) (E0–E9 implemented) |
 | What evidence closes the multi-spine iteration? | [v0.4 acceptance results](v0_4_multi_spine_acceptance.md) and [benchmark statistics](verification/v0_4_20260903.json) |
 | How is a release checked? | [v0.3 release checklist](v0_3_release_checklist.md) and [CI workflow](../.github/workflows/ci.yml) |
 | Why was the algorithm designed this way? | [Algorithm design discussion](algorithm_design_discussion.md) |

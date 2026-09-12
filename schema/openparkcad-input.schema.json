@@ -15,6 +15,7 @@
       "properties": {
         "jurisdiction": {"type": "string"},
         "standard_profile": {"type": "string"},
+        "rule_profile": {"type": "string"},
         "strictness": {"type": "string"},
         "source": {"type": "string"},
         "effective_date": {"type": "string", "format": "date"}

@@ -17,6 +17,7 @@ from openparkcad.road_transitions import (
     make_state,
     sample_aisle_states,
     try_arc_turn,
+    try_approach_turn,
     try_dogleg,
     try_straight,
 )
@@ -158,6 +159,49 @@ def test_dogleg_single_and_double_have_pass_and_reject() -> None:
         policy=policy,
     )
     assert backward is None
+
+
+@pytest.mark.parametrize("heading,sign", [(0.0, 1), (0.0, -1), (90.0, 1), (37.0, -1)])
+def test_offset_tangent_stations_join_without_pose_gap(heading: float, sign: int) -> None:
+    vehicle = design_vehicle()
+    start = make_state("road", VehiclePose(4.0, 5.0, heading), aisle_id="A-MAIN")
+    reference = simulate_bicycle_path(vehicle, start.pose, [
+        straight_motion(3.0), arc_motion(vehicle, sign * 90.0, radius=6.0), straight_motion(5.0),
+    ])
+    assert reference.final_pose is not None
+    end = make_state("road", reference.final_pose, aisle_id="A-BRANCH")
+    found = connect_states(vehicle, start, end, occupancy=_open_occupancy(), policy=_policy())
+    assert found is not None
+    transition, evidence = found
+    assert transition.road_relation == "straight_arc_straight"
+    assert evidence.valid
+    assert evidence.to_pose.x == pytest.approx(end.pose.x, abs=1e-6)
+    assert evidence.to_pose.y == pytest.approx(end.pose.y, abs=1e-6)
+    assert all(segment.distance >= 0 for segment in transition.segments)
+
+
+def test_approach_turn_rejects_collision_and_insufficient_radius() -> None:
+    from dataclasses import replace
+
+    vehicle = design_vehicle()
+    start = make_state("road", VehiclePose(0.0, 0.0, 0.0))
+    end = make_state("road", VehiclePose(9.0, 11.0, 90.0))
+    occupancy = _open_occupancy()
+    blocked = replace(occupancy, hard_obstacles=ShapelyPolygon([(-2, -2), (15, -2), (15, 15), (-2, 15)]))
+    assert try_approach_turn(vehicle, start, end, occupancy=blocked, policy=_policy(), family="exit_turn") is None
+    tight = make_state("road", VehiclePose(1.0, 1.0, 90.0))
+    assert try_approach_turn(vehicle, start, tight, occupancy=occupancy, policy=_policy(), family="exit_turn") is None
+
+
+def test_arc_does_not_insert_a_centimetre_gap_into_a_journey() -> None:
+    vehicle = design_vehicle()
+    start = make_state("road", VehiclePose(0.0, 0.0, 0.0))
+    end = make_state("road", VehiclePose(6.02, 6.0, 90.0))
+    assert try_arc_turn(vehicle, start, end, occupancy=_open_occupancy(), policy=_policy(), family="exit_turn") is None
+    found = connect_states(vehicle, start, end, occupancy=_open_occupancy(), policy=_policy())
+    assert found is not None
+    assert found[1].to_pose.x == pytest.approx(6.02, abs=1e-6)
+    assert found[1].to_pose.y == pytest.approx(6.0, abs=1e-6)
 
 
 def test_u_turn_family_and_unsupported_angle() -> None:

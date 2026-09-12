@@ -9,7 +9,7 @@ from pathlib import Path
 from typing import Any
 
 from openparkcad.layout_locks import LayoutLock, parse_lock
-from openparkcad.models import LayoutResult
+from openparkcad.models import LayoutResult, ParkingAisle, ParkingStall, site_from_dict
 
 PROJECT_VERSION = "openparkcad-project-1"
 
@@ -146,6 +146,109 @@ def load_project(path: str | Path) -> ProjectState:
     if not isinstance(raw, dict):
         raise ValueError("project file must be an object")
     return parse_project(raw)
+
+
+def accepted_layout_snapshot(layout: LayoutResult) -> dict[str, Any]:
+    return {
+        "aisles": [
+            {
+                "id": aisle.id,
+                "role": aisle.role,
+                "polygon": [list(point) for point in aisle.polygon],
+                "directionality": aisle.directionality,
+                "angle_degrees": aisle.angle_degrees,
+                "connected_to_entrance_id": aisle.connected_to_entrance_id,
+                "parent_aisle_id": aisle.parent_aisle_id,
+                "connected_aisle_ids": list(aisle.connected_aisle_ids),
+            }
+            for aisle in layout.aisles
+        ],
+        "stalls": [
+            {
+                "id": stall.id,
+                "polygon": [list(point) for point in stall.polygon],
+                "served_by_aisle_id": stall.served_by_aisle_id,
+                "stall_type_id": stall.stall_type_id,
+                "angle_degrees": stall.angle_degrees,
+                "aisle_side": stall.aisle_side,
+            }
+            for stall in layout.stalls
+        ],
+        "generation_mode": layout.generation_mode,
+        "main_entrance_id": layout.main_entrance_id,
+        "selected_heading_degrees": layout.selected_heading_degrees,
+        "selected_stall_type_id": layout.selected_stall_type_id,
+    }
+
+
+def layout_from_project_state(state: ProjectState) -> LayoutResult | None:
+    geometry = state.accepted_layout
+    site_payload = state.accepted_site
+    if not isinstance(geometry, dict) or not (geometry.get("aisles") or geometry.get("stalls")):
+        return None
+    if not isinstance(site_payload, dict):
+        site_payload = state.revisions[-1].site if state.revisions else None
+    if not isinstance(site_payload, dict) or "site" not in site_payload:
+        return None
+    site = site_from_dict(site_payload)
+    aisles: list[ParkingAisle] = []
+    for index, item in enumerate(geometry.get("aisles") or [], start=1):
+        if not isinstance(item, dict):
+            continue
+        points = _snapshot_polygon(item.get("polygon"))
+        if not points:
+            continue
+        aisles.append(
+            ParkingAisle(
+                id=str(item.get("id") or f"A-{index}"),
+                polygon=points,
+                angle_degrees=float(item.get("angle_degrees") or 0.0),
+                role=str(item.get("role") or "aisle"),
+                connected_to_entrance_id=item.get("connected_to_entrance_id"),
+                parent_aisle_id=item.get("parent_aisle_id"),
+                connected_aisle_ids=tuple(item.get("connected_aisle_ids") or ()),
+                directionality=str(item.get("directionality") or "two_way"),
+            )
+        )
+    stalls: list[ParkingStall] = []
+    for index, item in enumerate(geometry.get("stalls") or [], start=1):
+        if not isinstance(item, dict):
+            continue
+        points = _snapshot_polygon(item.get("polygon"))
+        if not points:
+            continue
+        stalls.append(
+            ParkingStall(
+                id=str(item.get("id") or f"P-{index:03d}"),
+                polygon=points,
+                angle_degrees=float(item.get("angle_degrees") or 0.0),
+                served_by_aisle_id=item.get("served_by_aisle_id"),
+                aisle_side=item.get("aisle_side"),
+                stall_type_id=item.get("stall_type_id"),
+            )
+        )
+    if not aisles and not stalls:
+        return None
+    return LayoutResult(
+        site=site,
+        stalls=stalls,
+        aisles=aisles,
+        generation_mode=str(geometry.get("generation_mode") or "phase1_main_aisle"),
+        main_entrance_id=geometry.get("main_entrance_id"),
+        selected_heading_degrees=geometry.get("selected_heading_degrees"),
+        selected_stall_type_id=geometry.get("selected_stall_type_id"),
+    )
+
+
+def _snapshot_polygon(raw: Any) -> list[tuple[float, float]]:
+    if not isinstance(raw, list) or len(raw) < 3:
+        return []
+    points: list[tuple[float, float]] = []
+    for item in raw:
+        if not isinstance(item, list | tuple) or len(item) != 2:
+            return []
+        points.append((float(item[0]), float(item[1])))
+    return points
 
 
 def current_locks(state: ProjectState) -> list[LayoutLock]:

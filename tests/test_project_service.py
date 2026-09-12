@@ -63,6 +63,21 @@ def test_ut09_export_rebuilds_and_revalidates() -> None:
     assert exported.engineering_validation.get("valid") is True
 
 
+def test_service_from_loaded_state_exports_without_second_accept(tmp_path: Path) -> None:
+    layout = generate_layout(site_from_dict(_valid_site_data()))
+    service = ProjectService()
+    service.accept_layout(layout)
+    main = next(aisle for aisle in layout.aisles if aisle.role == "main")
+    path = tmp_path / "project.json"
+    save_project(service.state, path)
+    reopened = ProjectService(load_project(path))
+    reopened.lock_main_aisle(main.id)
+    reopened.lock_stall_group([layout.stalls[0].id], lock_id="loaded-group")
+    exported = reopened.export_accepted()
+    assert exported.stall_count == layout.stall_count
+    assert exported.engineering_validation.get("valid") is True
+
+
 def test_constrained_regen_keeps_accepted_on_lock_conflict() -> None:
     layout = through_layout(enabled=False)
 

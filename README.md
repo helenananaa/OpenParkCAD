@@ -265,7 +265,7 @@ The current release does not provide:
   certification, EV equipment design, slope/drainage analysis, or built-in
   local-code profiles;
 - global layout optimization beyond the discrete shadow candidate catalog;
-- DXF/site-survey import, interactive editing, or a graphical application; or
+- unrestricted DXF/site-survey import or a full interactive CAD editor; or
 - certification that generated drawings are construction-ready or compliant.
 
 Connector-side T-end stalls and non-90-degree perpendicular stalls remain
@@ -292,6 +292,7 @@ on Python 3.10 and 3.12.
 - [Next five stages execution plan](docs/next_stages_execution_plan.md) (planned: road traversal, CAD input, interactive design, broader layouts, delivery)
 - [v0.4 benchmark and multi-spine execution plan](docs/v0_4_multi_spine_execution_plan.md) (E0–E9 implemented; §12 later)
 - [v0.4 multi-spine acceptance results](docs/v0_4_multi_spine_acceptance.md) (full regression, 240 benchmark runs, installed wheel, CI)
+- [Parallel-ladder complete-journey case](docs/road_traversal_ladder_closure.md) (20/20 synthetic retained stalls; separate generous-bay input)
 - [v0.5 parallel-ladder acceptance](docs/v0_5_parallel_ladder_acceptance.md) (synthetic-only; default path unchanged)
 - [Input model](docs/input_model.md)
 - [v0.3 vehicle and enforced-constraint contract](docs/v0.3_vehicle_and_constraints.md)

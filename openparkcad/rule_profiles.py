@@ -7,6 +7,7 @@ from typing import Any
 
 PROFILE_VERSION = "rule-profile-1"
 DEFAULT_PROFILE_ID = "private_surface_lot_v1"
+CUSTOM_PROFILE_TOKEN = "custom"
 
 _PROFILES: dict[str, dict[str, Any]] = {
     DEFAULT_PROFILE_ID: {
@@ -67,11 +68,24 @@ class RuleProfile:
         return name in self.executes
 
 
+def resolve_profile_id(profile_id: str | None) -> RuleProfile:
+    """Missing, empty, or the agreed ``custom`` token use the default profile.
+
+    Any other explicit id must be registered; unknown values raise rather than
+    silently claiming the default profile.
+    """
+    if profile_id is None:
+        return load_profile(DEFAULT_PROFILE_ID)
+    requested = str(profile_id).strip()
+    if requested == "" or requested == CUSTOM_PROFILE_TOKEN:
+        return load_profile(DEFAULT_PROFILE_ID)
+    return load_profile(requested)
+
+
 def parse_rule_profile(raw: dict[str, Any] | None) -> RuleProfile:
     if not raw:
         return load_profile(DEFAULT_PROFILE_ID)
-    profile_id = str(raw.get("id") or DEFAULT_PROFILE_ID)
-    return load_profile(profile_id)
+    return resolve_profile_id(raw.get("id"))
 
 
 def load_profile(profile_id: str) -> RuleProfile:
@@ -92,7 +106,10 @@ def load_profile(profile_id: str) -> RuleProfile:
 
 def profile_from_site(site) -> RuleProfile:
     standards = site.standards if isinstance(getattr(site, "standards", None), dict) else {}
-    requested = standards.get("rule_profile") or standards.get("standard_profile")
-    if requested and requested != "custom" and requested in _PROFILES:
-        return load_profile(str(requested))
-    return load_profile(DEFAULT_PROFILE_ID)
+    # ``standard_profile`` predates executable rule profiles and remains
+    # free-form jurisdiction/project metadata.  Only ``rule_profile`` selects
+    # executable checks, so legacy values cannot be mistaken for registry ids.
+    requested = standards.get("rule_profile")
+    if requested is None:
+        return resolve_profile_id(None)
+    return resolve_profile_id(str(requested))

@@ -209,3 +209,10 @@ $wheelPython -I -m openparkcad solve examples/parallel_ladder_rect_site.json --o
 - 针对性测试：ruff=0；63 passed / 105s。
 - 全量：521 passed，coverage 83.87%，`fail_under` 80；两条原先套件敏感的道路测试在 60s fixture 预算下通过。
 - 未 push/tag/release。不重跑 1152 格矩阵（仍是晋升修复前的历史证据）。
+
+### 2026-09-08 bounded journey closure
+
+- 新增独立宽车位合成案例：正式 parallel_ladder、双停车通道、20/20 保留车位完整旅程通过；道路、交通图、车辆及工程门槛和 CLI 正式输出均通过。
+- 修复采样切点、直线/圆弧连接、局部与整段误差不一致、入口净深和端部停车留空、内移横通道的虚假入口关联。
+- 原 N-T01 密排案例不变；未宣称全部密排车位可用或真实场地收益；N9 总体验收仍未关闭。
+- 复现、支持边界及证据见 [journey closure](road_traversal_ladder_closure.md)。

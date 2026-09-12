@@ -42,6 +42,9 @@ R-T02 pass pair. Generated examples without the switch keep legacy stall counts.
 - Articulated vehicles, road reversing, and off-site approach are unsupported.
 - A generated site JSON with the switch on is not automatically a pass case;
   the R-T02 pass pair is the hand-built through-site fixture.
+- Close-out ran `benchmarks/road_traversal.json --profile all --subset smoke
+  --repeats 1` only. The plan's full repeated benchmark set is not complete;
+  the road benchmark currently has two cases.
 
 ## R4 close-out
 

@@ -105,6 +105,11 @@ jurisdiction
 standard_profile
   Named rule set. Early values may be custom, conservative, or project_default.
 
+rule_profile
+  Executable OpenParkCAD rule-profile registry id. Unknown explicit ids are
+  rejected; if omitted, the built-in default profile is used. This is distinct
+  from the legacy free-form `standard_profile` metadata field.
+
 strictness
   relaxed, normal, or conservative. This should influence default margins and
   penalties, not override explicit hard constraints.

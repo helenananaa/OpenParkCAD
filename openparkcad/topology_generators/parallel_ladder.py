@@ -196,6 +196,20 @@ def _build_one(
         if aisle_vs[0] - aisle_width / 2.0 < v_min - 0.2 or aisle_vs[-1] + aisle_width / 2.0 > v_max + 0.2:
             return None
     u_entry = max(u_min + aisle_width / 2.0, aisle_width / 2.0)
+    from openparkcad.road_traversal_models import parse_traversal_policy
+    from openparkcad.swept_path import resolve_vehicle_overhangs
+    from openparkcad.vehicle_kinematics import rear_axle_turning_radius
+
+    traversal_requested = parse_traversal_policy(site).requested
+    if traversal_requested and site.vehicle is not None:
+        vehicle = site.vehicle
+        radius = rear_axle_turning_radius(vehicle)
+        overhangs = resolve_vehicle_overhangs(vehicle)
+        if radius.valid and radius.rear_axle_radius is not None and overhangs.valid:
+            # Both ingress and egress need a tangent before the cross aisle.
+            # The outbound anchor is inset by the front reach of the vehicle.
+            reach = max(vehicle.wheelbase + overhangs.front_overhang, overhangs.rear_overhang)
+            u_entry = max(u_entry, radius.rear_axle_radius + reach + vehicle.swept_path_margin + 0.05)
     u_far = u_max - aisle_width / 2.0
     park_end = u_far if policy == "both_ends" else u_far
     if park_end - u_entry < min_length:
@@ -250,16 +264,19 @@ def _build_one(
         add_node("N-C1", "junction", u_entry, cross_v1)
         if not add_seg("S-CROSS-ENTRY", "cross_aisle", "N-C0", "N-C1", u_entry, cross_v0, u_entry, cross_v1, ("none",)):
             return None
-    if ShapelyPoint(entrance.center).distance(derive_segment_polygon(segments[-1])) > 0.51:
+    if not traversal_requested and ShapelyPoint(entrance.center).distance(derive_segment_polygon(segments[-1])) > 0.51:
         return None
     gate_v = _to_local(entrance.center, frame, heading)[1]
     add_node("N-GATE", "junction", u_entry, gate_v)
     if not add_seg("S-THROAT", "cross_aisle", "N-ENT", "N-GATE", 0.0, gate_v, u_entry, gate_v, ("none",)):
+        if traversal_requested:
+            return None
         # Keep the entrance node even if the stub is too short to add; merge identities below.
         pass
     else:
         movements.append(make_movement("M-THROAT", "S-THROAT", "S-CROSS-ENTRY", "N-GATE", "straight"))
-    movements.append(make_movement("M-ENTER", "S-CROSS-ENTRY", "S-CROSS-ENTRY", "N-ENT", "enter"))
+    entrance_segment = "S-THROAT" if traversal_requested else "S-CROSS-ENTRY"
+    movements.append(make_movement("M-ENTER", entrance_segment, entrance_segment, "N-ENT", "enter"))
 
     for i, v in enumerate(aisle_vs):
         add_node(f"N-A{i}-NEAR", "junction", u_entry, v)

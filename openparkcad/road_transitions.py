@@ -336,6 +336,13 @@ def try_arc_turn(
         if implied > 0.0 and math.isfinite(implied):
             radii.insert(0, implied)
     for radius in radii:
+        turn_sign = 1.0 if delta > 0 else -1.0
+        along = radius * math.sin(math.radians(abs_delta))
+        lateral = turn_sign * radius * (1.0 - math.cos(math.radians(abs_delta)))
+        predicted_x = start.pose.x + along * ux - lateral * uy
+        predicted_y = start.pose.y + along * uy + lateral * ux
+        if math.hypot(predicted_x - end.pose.x, predicted_y - end.pose.y) > policy.position_tolerance_m:
+            continue
         try:
             segment = arc_motion(vehicle, delta, radius=radius, label=family)
         except ValueError:
@@ -352,8 +359,8 @@ def try_arc_turn(
         if not poses_joinable(
             simulation.final_pose,
             end.pose,
-            position_tolerance_m=max(policy.position_tolerance_m, 0.05),
-            heading_tolerance_degrees=max(policy.heading_tolerance_degrees, 0.5),
+            position_tolerance_m=policy.position_tolerance_m,
+            heading_tolerance_degrees=policy.heading_tolerance_degrees,
         ):
             continue
         evidence = evaluate_motion(
@@ -368,6 +375,57 @@ def try_arc_turn(
         if not evidence.valid:
             continue
         return _transition(family, start, end, (segment,), "constant_radius_turn", {"radius": radius, "heading_change": delta}), evidence
+    return None
+
+
+def try_approach_turn(
+    vehicle: VehicleSpec,
+    start: TraversalState,
+    end: TraversalState,
+    *,
+    occupancy: OccupancySet,
+    policy: TraversalPolicy,
+    family: str,
+    stall_id: str | None = None,
+) -> tuple[RoadTransition, TransitionEvidence] | None:
+    """Join orthogonal road stations with a forward straight/arc/straight.
+
+    Uniformly sampled stations need not be tangent points of one circular arc.
+    Solve the two straight lengths in the start frame; never bridge an endpoint
+    gap or shorten the vehicle's minimum radius to make a connection fit.
+    """
+    delta = wrap_heading_delta(end.pose.heading_degrees - start.pose.heading_degrees)
+    if abs(abs(delta) - 90.0) > 1e-6:
+        return None
+    ux, uy = heading_unit(start.pose.heading_degrees)
+    dx, dy = end.pose.x - start.pose.x, end.pose.y - start.pose.y
+    along = dx * ux + dy * uy
+    lateral = (dx * -uy + dy * ux) * (1.0 if delta > 0 else -1.0)
+    resolution = rear_axle_turning_radius(vehicle)
+    if not resolution.valid or resolution.rear_axle_radius is None:
+        return None
+    for factor in _RADIUS_FACTORS:
+        radius = resolution.rear_axle_radius * factor
+        approach, departure = along - radius, lateral - radius
+        if min(approach, departure) < -_GEOMETRY_EPSILON:
+            continue
+        segments = (
+            straight_motion(max(approach, 0.0), label="turn_approach"),
+            arc_motion(vehicle, delta, radius=radius, label=family),
+            straight_motion(max(departure, 0.0), label="turn_departure"),
+        )
+        evidence = evaluate_motion(
+            vehicle, start.pose, segments,
+            allowed=_allowed_for(start, occupancy, stall_id),
+            obstacles=occupancy.obstacles_excluding_stall(stall_id),
+            policy=policy, family=family,
+        )
+        if evidence.valid and poses_joinable(
+            evidence.to_pose, end.pose,
+            position_tolerance_m=policy.position_tolerance_m,
+            heading_tolerance_degrees=policy.heading_tolerance_degrees,
+        ):
+            return _transition(family, start, end, segments, "straight_arc_straight", {"radius": radius}), evidence
     return None
 
 
@@ -450,8 +508,8 @@ def try_dogleg(
             if not poses_joinable(
                 simulation.final_pose,
                 end.pose,
-                position_tolerance_m=max(policy.position_tolerance_m, 0.08),
-                heading_tolerance_degrees=max(policy.heading_tolerance_degrees, 1.0),
+                position_tolerance_m=policy.position_tolerance_m,
+                heading_tolerance_degrees=policy.heading_tolerance_degrees,
             ):
                 continue
             evidence = evaluate_motion(
@@ -501,6 +559,7 @@ def connect_states(
     if heading_delta <= 50.0 and along > 0.4 and 0.02 < lateral < 4.0:
         families.append("dogleg_single_jog")
     seen: set[str] = set()
+    turn_attempted = False
     for family in families:
         if family in seen:
             continue
@@ -516,7 +575,12 @@ def connect_states(
             "turnaround_u_turn",
             "u_connector",
         }:
+            if turn_attempted:
+                continue
+            turn_attempted = True
             found = try_arc_turn(vehicle, start, end, occupancy=occupancy, policy=policy, family=family, stall_id=stall_id)
+            if found is None:
+                found = try_approach_turn(vehicle, start, end, occupancy=occupancy, policy=policy, family=family, stall_id=stall_id)
             if found:
                 return found
         elif family in {"dogleg_single_jog", "dogleg_double_jog"}:

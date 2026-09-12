@@ -31,5 +31,7 @@ Date: 2026-09-03. Bundle version: `review-bundle-1`. Project version: `openparkc
 
 - First-edition locks reject non-matching generated geometry rather than
   synthesising a full CAD editor.
-- Browser interaction coverage is unit/static HTML plus a headless screenshot
-  attempt; Playwright may lack installed browsers in this environment.
+- Browser verification of U-T01–U-T10 is not completed. Unit/static HTML and a
+  headless screenshot attempt are not a substitute for real browser acceptance.
+- Project lock and regenerate live in the Python service; they are not wired
+  into the CLI or viewer UI.

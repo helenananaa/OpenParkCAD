@@ -21,6 +21,7 @@ def build_delivery_manifest(
     *,
     input_bytes: bytes | None = None,
     output_paths: dict[str, Path] | None = None,
+    hash_from: dict[str, Path] | None = None,
     human_review: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     profile = profile_from_site(layout.site)
@@ -28,9 +29,10 @@ def build_delivery_manifest(
     outputs = {}
     for name, path in (output_paths or {}).items():
         target = Path(path)
+        source = Path(hash_from[name]) if hash_from and name in hash_from else target
         outputs[name] = {
             "path": str(target),
-            "sha256": _sha256_file(target) if target.is_file() else None,
+            "sha256": _sha256_file(source) if source.is_file() else None,
         }
     return {
         "version": MANIFEST_VERSION,

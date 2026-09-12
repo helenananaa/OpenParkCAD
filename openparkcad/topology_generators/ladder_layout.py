@@ -13,6 +13,7 @@ from openparkcad.models import LayoutResult, ParkingAisle, ParkingStall, SiteSpe
 from openparkcad.road_skeleton import RoadSkeleton
 from openparkcad.road_skeleton_geometry import derive_segment_polygon
 from openparkcad.road_traversal import validate_road_traversal
+from openparkcad.road_traversal_models import parse_traversal_policy
 
 ROLE_MAP = {
     "parking_aisle": "branch",
@@ -34,15 +35,19 @@ def layout_from_skeleton(site: SiteSpec, skeleton: RoadSkeleton, stalls: list[Pa
             if movement.from_segment_id.startswith("S-CROSS") or movement.from_segment_id == "S-THROAT":
                 parents[movement.to_segment_id] = movement.from_segment_id
     entrance_id = skeleton.entrance_ids[0] if skeleton.entrance_ids else None
+    entrance_nodes = {node.id: node.source_id for node in skeleton.nodes if node.kind == "entrance_port"}
     for segment in skeleton.segments:
         polygon = _official_aisle_polygon(segment, site)
         role = ROLE_MAP.get(segment.role, segment.role)
+        connected_entrance = entrance_id if segment.id in {"S-CROSS-ENTRY", "S-THROAT"} else None
+        if parse_traversal_policy(site).requested:
+            connected_entrance = entrance_nodes.get(segment.start_node_id) or entrance_nodes.get(segment.end_node_id)
         aisle = ParkingAisle(
             id=segment.id,
             polygon=polygon,
             angle_degrees=0.0,
             role=role,
-            connected_to_entrance_id=entrance_id if segment.id in {"S-CROSS-ENTRY", "S-THROAT"} else None,
+            connected_to_entrance_id=connected_entrance,
             parent_aisle_id=parents.get(segment.id),
             connected_aisle_ids=tuple(dict.fromkeys(connected.get(segment.id, []))),
             directionality=segment.directionality,

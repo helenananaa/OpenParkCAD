@@ -22,6 +22,8 @@ review drawings. Synthetic trial only; no licensed real site.
 ## Remaining limits
 
 - Not a jurisdiction certification or construction-document package.
+- Synthetic trial only: no licensed real-site CAD, no actual jurisdiction rule
+  source, no field project, and no human-review sign-off loop.
 
 ## D3 wheel (2026-09-04)
 

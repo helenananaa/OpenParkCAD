@@ -167,6 +167,9 @@ def _solve(args: argparse.Namespace) -> int:
 
     try:
         site = site_from_dict(data)
+        from openparkcad.rule_profiles import profile_from_site
+
+        profile_from_site(site)
     except (KeyError, TypeError, ValueError) as exc:
         return _error(f"invalid site input: {exc}")
 
@@ -197,11 +200,9 @@ def _solve(args: argparse.Namespace) -> int:
         return _error(message, exit_code=3)
 
     official_paths = [Path(args.out), Path(args.preview), Path(args.report)]
-    extra_paths: list[Path] = []
-    if args.review_bundle:
-        extra_paths.append(Path(args.review_bundle))
-    if args.delivery_manifest:
-        extra_paths.append(Path(args.delivery_manifest))
+    review_bundle_path = Path(args.review_bundle) if args.review_bundle else None
+    delivery_manifest_path = Path(args.delivery_manifest) if args.delivery_manifest else None
+    extra_paths = [path for path in (review_bundle_path, delivery_manifest_path) if path is not None]
     try:
         _require_distinct_output_paths([*official_paths, *extra_paths])
         _write_output_set(
@@ -210,28 +211,12 @@ def _solve(args: argparse.Namespace) -> int:
             svg_path=official_paths[1],
             report_path=official_paths[2],
             restore_source_coordinates=bool(getattr(args, "source_coordinates", False)),
-            review_bundle_path=extra_paths[0] if args.review_bundle else None,
+            review_bundle_path=review_bundle_path,
+            delivery_manifest_path=delivery_manifest_path,
+            input_bytes=site_path.read_bytes() if delivery_manifest_path is not None else None,
         )
     except Exception as exc:
         return _error(f"could not write outputs: {exc}", exit_code=4)
-
-    if args.delivery_manifest:
-        try:
-            from openparkcad.delivery_manifest import build_delivery_manifest
-
-            output_paths = {"dxf": official_paths[0], "svg": official_paths[1], "report": official_paths[2]}
-            if args.review_bundle:
-                output_paths["review_bundle"] = Path(args.review_bundle)
-            _write_json(
-                Path(args.delivery_manifest),
-                build_delivery_manifest(
-                    layout,
-                    input_bytes=site_path.read_bytes(),
-                    output_paths=output_paths,
-                ),
-            )
-        except Exception as exc:
-            return _error(f"could not write delivery manifest: {exc}", exit_code=4)
 
     print(f"site: {site.name}")
     print(f"stalls: {layout.stall_count}")
@@ -341,6 +326,7 @@ def _write_report(layout, path: str | Path) -> None:
         "traffic_graph": traffic_graph_report(layout),
         "input_diagnostics": build_input_diagnostics(layout.site, layout),
         "layout_search": layout_search_report(layout),
+        "rule_profile": _rule_profile_record(layout),
     }
     target.write_text(json.dumps(data, indent=2), encoding="utf-8")
 
@@ -401,6 +387,8 @@ def _write_output_set(
     *,
     restore_source_coordinates: bool = False,
     review_bundle_path: Path | None = None,
+    delivery_manifest_path: Path | None = None,
+    input_bytes: bytes | None = None,
 ) -> None:
     def _dxf(current, path: str | Path) -> None:
         write_dxf(current, path, restore_source_coordinates=restore_source_coordinates)
@@ -412,19 +400,39 @@ def _write_output_set(
     ]
     if review_bundle_path is not None:
         outputs.append((review_bundle_path, _write_review_bundle))
-    _require_distinct_output_paths([target for target, _ in outputs])
+    hash_targets: dict[str, Path] = {"dxf": dxf_path, "svg": svg_path, "report": report_path}
+    if review_bundle_path is not None:
+        hash_targets["review_bundle"] = review_bundle_path
+    commit_paths = [target for target, _ in outputs]
+    if delivery_manifest_path is not None:
+        commit_paths.append(delivery_manifest_path)
+    _require_distinct_output_paths(commit_paths)
 
     temporary_paths: dict[Path, Path] = {}
     backup_paths: dict[Path, Path] = {}
     try:
-        for target, _ in outputs:
+        for target in commit_paths:
             target.parent.mkdir(parents=True, exist_ok=True)
             temporary_paths[target] = _temporary_sibling(target, suffix=".tmp")
 
         for target, writer in outputs:
             writer(layout, temporary_paths[target])
 
-        for target, _ in outputs:
+        if delivery_manifest_path is not None:
+            from openparkcad.delivery_manifest import build_delivery_manifest
+
+            hash_from = {name: temporary_paths[path] for name, path in hash_targets.items()}
+            _write_json(
+                temporary_paths[delivery_manifest_path],
+                build_delivery_manifest(
+                    layout,
+                    input_bytes=input_bytes,
+                    output_paths=hash_targets,
+                    hash_from=hash_from,
+                ),
+            )
+
+        for target in commit_paths:
             if target.is_file():
                 backup = _temporary_sibling(target, suffix=".bak")
                 shutil.copy2(target, backup)
@@ -432,7 +440,7 @@ def _write_output_set(
 
         committed: list[Path] = []
         try:
-            for target, _ in outputs:
+            for target in commit_paths:
                 os.replace(temporary_paths[target], target)
                 committed.append(target)
         except Exception:
@@ -500,6 +508,12 @@ def _temporary_sibling(target: Path, suffix: str) -> Path:
 def _error(message: str, exit_code: int = 2) -> int:
     print(f"error: {message}", file=sys.stderr)
     return exit_code
+
+
+def _rule_profile_record(layout) -> dict[str, Any]:
+    from openparkcad.rule_profiles import profile_from_site
+
+    return profile_from_site(layout.site).to_record()
 
 
 def _stall_spec_report(stall) -> dict[str, object]:

@@ -26,6 +26,7 @@ from openparkcad.road_traversal_models import (
     wrap_heading_delta,
 )
 from openparkcad.road_transitions import (
+    aisle_centerline,
     OccupancySet,
     RoadTransition,
     build_occupancy,
@@ -34,9 +35,10 @@ from openparkcad.road_transitions import (
     evaluate_motion,
     make_state,
     sample_aisle_states,
+    try_arc_turn,
 )
 from openparkcad.traffic_graph import build_traffic_graph, validate_traffic_graph
-from openparkcad.vehicle_kinematics import MotionSegment, VehiclePose, simulate_bicycle_path
+from openparkcad.vehicle_kinematics import MotionSegment, VehiclePose, rear_axle_turning_radius, simulate_bicycle_path
 
 _NEIGHBOR_DISTANCE_M = 22.0
 _MAX_EXPANSIONS = 8000
@@ -122,9 +124,11 @@ def validate_road_traversal(
     if _budget_hit(active_deadline):
         return _incomplete(policy, identity, started, budget, budget_source, len(layout.stalls), "time_budget_exhausted", source_layout_id, result_layout_id or _layout_result_id(layout))
 
-    parking_motions = {
-        stall.id: parking_motion_for_stall(layout, stall, occupancy, policy, vehicle) for stall in layout.stalls
-    }
+    parking_motions = {}
+    for stall in layout.stalls:
+        if _budget_hit(active_deadline):
+            return _incomplete(policy, identity, started, budget, budget_source, len(layout.stalls), "time_budget_exhausted", source_layout_id, result_layout_id or _layout_result_id(layout))
+        parking_motions[stall.id] = parking_motion_for_stall(layout, stall, occupancy, policy, vehicle)
     graph = _build_pose_graph(layout, occupancy, policy, vehicle, parking_motions, active_deadline)
     if graph is None:
         return _incomplete(policy, identity, started, budget, budget_source, len(layout.stalls), "time_budget_exhausted", source_layout_id, result_layout_id or _layout_result_id(layout))
@@ -314,8 +318,43 @@ def _build_pose_graph(
         add_state(make_state("exit_inner", pose, entrance_id=entrance.id))
 
     aisle_states: dict[str, list[TraversalState]] = {}
+    centerlines = {aisle.id: aisle_centerline(aisle) for aisle in layout.aisles}
+    radius = rear_axle_turning_radius(vehicle).rear_axle_radius
+    road_allowed = occupancy.road_allowed()
+    road_obstacles = occupancy.obstacles_excluding_stall(None)
     for aisle in layout.aisles:
-        sampled = [add_state(item) for item in sample_aisle_states(aisle, vehicle)]
+        if _budget_hit(deadline):
+            return None
+        sampled = sample_aisle_states(aisle, vehicle)
+        line = centerlines[aisle.id]
+        if radius is not None and line is not None:
+            # A uniform station grid can miss the short straight between two
+            # nearby turns. Include exact minimum-radius tangent stations.
+            for other in layout.aisles:
+                other_line = centerlines[other.id]
+                delta = abs(wrap_heading_delta(other.angle_degrees - aisle.angle_degrees))
+                if other_line is None or abs(delta - 90.0) > 1e-6:
+                    continue
+                junction = line.intersection(other_line)
+                if junction.geom_type != "Point":
+                    continue
+                station = line.project(junction)
+                for distance in (station - radius, station + radius):
+                    if not 0.0 <= distance <= line.length:
+                        continue
+                    point = line.interpolate(distance)
+                    headings = [aisle.angle_degrees]
+                    if aisle.directionality != "one_way":
+                        headings.append(aisle.angle_degrees + 180.0)
+                    for heading in headings:
+                        sampled.append(make_state("road", VehiclePose(point.x, point.y, heading), aisle_id=aisle.id))
+        sampled = [
+            add_state(item) for item in {item.state_id: item for item in sampled}.values()
+            if evaluate_motion(
+                vehicle, item.pose, (), allowed=road_allowed, obstacles=road_obstacles,
+                policy=policy, family="road_station",
+            ).valid
+        ]
         aisle_states[aisle.id] = sampled
 
     parking_nodes: dict[str, ParkingMotion] = {}
@@ -363,7 +402,10 @@ def _build_pose_graph(
                     if _budget_hit(deadline):
                         return None
                     family = _junction_family(aisle.role, aisles_by_id[other_id].role, start.pose, end.pose)
-                    _try_add_connection(vehicle, start, end, occupancy, policy, outgoing, family_hint=family)
+                    _try_add_connection(
+                        vehicle, start, end, occupancy, policy, outgoing, family_hint=family,
+                        tangent_only=layout.generation_mode == "parallel_ladder",
+                    )
 
     for state in list(states.values()):
         if state.kind != "entrance_inner":
@@ -395,6 +437,8 @@ def _build_pose_graph(
     for motion in parking_nodes.values():
         assert motion.start_state is not None and motion.exit_state is not None
         for candidate in state_list:
+            if _budget_hit(deadline):
+                return None
             if candidate.kind != "road":
                 continue
             if motion.start_state.aisle_id and candidate.aisle_id not in {motion.start_state.aisle_id, None}:
@@ -416,10 +460,16 @@ def _try_add_connection(
     policy: TraversalPolicy,
     outgoing: dict[str, list[tuple[str, RoadTransition, float]]],
     family_hint: str | None = None,
+    tangent_only: bool = False,
 ) -> None:
     if start.state_id == end.state_id:
         return
-    found = connect_states(vehicle, start, end, occupancy=occupancy, policy=policy, family_hint=family_hint)
+    if tangent_only and abs(abs(wrap_heading_delta(end.pose.heading_degrees - start.pose.heading_degrees)) - 90.0) < 1e-6:
+        # Ladder road turns have exact tangent stations. Long approach/departure
+        # variants duplicate the adjacent straight graph edges at quadratic cost.
+        found = try_arc_turn(vehicle, start, end, occupancy=occupancy, policy=policy, family=family_hint or "exit_turn")
+    else:
+        found = connect_states(vehicle, start, end, occupancy=occupancy, policy=policy, family_hint=family_hint)
     if found is None:
         return
     transition, evidence = found

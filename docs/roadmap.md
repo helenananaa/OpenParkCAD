@@ -127,6 +127,14 @@ current runtime does not import OR-Tools.
 
 ## Later product integration
 
+The [next five stages execution plan](next_stages_execution_plan.md) expands
+the remaining work into road-level vehicle traversal, CAD import, interactive
+viewing and constrained regeneration, case-driven layout extensions, and
+scoped engineering delivery. It specifies dependencies, proposed contracts,
+implementation locations, acceptance cases, and rollback. These are planned
+capabilities; start with B0 and R1–R4. Real-site collection and performance
+measurement continue alongside implementation.
+
 Only after the earlier release gates are met:
 
 - multiple coordinated entrances/exits, richer one-way/narrow aisle strategies
