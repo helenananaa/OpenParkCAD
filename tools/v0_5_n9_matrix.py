@@ -331,6 +331,7 @@ def parent_main(argv: list[str]) -> int:
         overlay_path.write_text(json.dumps(variant, indent=2), encoding="utf-8")
         command = [
             args.python,
+            "-I",
             str(Path(__file__).resolve()),
             "worker",
             "--input",
