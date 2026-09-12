@@ -28,7 +28,7 @@ ROOT = Path(__file__).resolve().parents[1]
 
 def cell(path: Path, mode: str):
     started = time.perf_counter()
-    data = json.loads(path.read_text())
+    data = json.loads(path.read_text(encoding="utf-8"))
     site = site_from_dict(data)
     config = parse_road_network_mapping(site.optimization["road_network"])
     candidates = generate_parallel_ladder_skeletons(site).candidates
@@ -70,7 +70,7 @@ def main():
     identity = git_identity(ROOT)
     if identity["dirty"]:
         raise ValueError("Freeze the source commit before running the corpus")
-    manifest = json.loads((ROOT / "tests/fixtures/dense_repair/manifest.json").read_text())
+    manifest = json.loads((ROOT / "tests/fixtures/dense_repair/manifest.json").read_text(encoding="utf-8"))
     plan = {"source": identity, "python": sys.executable, "repeats": 3, "validation_budget_seconds": 60,
             "worker_hard_timeout_seconds": 130, "corpus": manifest, "human_reference": "not_available",
             "timing_scope": "host_contended_sequential_functional_comparison"}
@@ -97,7 +97,7 @@ def main():
                     process.communicate()
                     result = {"outcome": "timeout", "accepted_stalls": 0}
                 else:
-                    result = json.loads(target.read_text()) if process.returncode == 0 and target.exists() else {
+                    result = json.loads(target.read_text(encoding="utf-8")) if process.returncode == 0 and target.exists() else {
                         "outcome": "error", "accepted_stalls": 0, "error": stderr, "stdout": stdout,
                     }
                 result.update(case_id=case["id"], split=case["split"], mode=mode, repeat=repeat)
