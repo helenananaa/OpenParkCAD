@@ -8,6 +8,7 @@ from shapely import affinity
 from shapely.geometry import LineString, Point as ShapelyPoint, Polygon as ShapelyPolygon
 
 from openparkcad.models import LayoutResult, ParkingAisle, ParkingStall, SiteSpec
+from openparkcad.site_constraints import declared_constraint_geometries
 from openparkcad.traffic_graph import build_traffic_graph
 
 
@@ -23,17 +24,20 @@ def operational_quality_report(layout: LayoutResult) -> dict[str, Any]:
     route_risks = _route_risk_reports(layout)
     directionality_risks = _directionality_risk_reports(layout)
     narrow_two_way_risks = _narrow_two_way_risk_reports(layout)
+    pedestrian_conflicts = _pedestrian_conflict_reports(layout)
     junction_conflicts = sum(len(item["conflicting_stalls"]) for item in junctions)
     entrance_conflicts = sum(len(item["conflicting_stalls"]) for item in entrance_throats)
     route_risk_score = float(route_risks["risk_score"])
     directionality_risk_score = float(directionality_risks["risk_score"])
     narrow_two_way_risk_score = float(narrow_two_way_risks["risk_score"])
+    pedestrian_conflict_risk_score = float(pedestrian_conflicts["risk_score"])
     risk_score = float(
         junction_conflicts
         + entrance_conflicts
         + route_risk_score
         + directionality_risk_score
         + narrow_two_way_risk_score
+        + pedestrian_conflict_risk_score
     )
     mode = _operational_quality_mode(layout.site)
     max_allowed_risk_score = _max_allowed_risk_score(layout.site)
@@ -42,7 +46,14 @@ def operational_quality_report(layout: LayoutResult) -> dict[str, Any]:
         and risk_score > max_allowed_risk_score + 1e-9
     )
     blocking_conflicts = (
-        _blocking_conflicts(junctions, entrance_throats, route_risks, directionality_risks, narrow_two_way_risks)
+        _blocking_conflicts(
+            junctions,
+            entrance_throats,
+            route_risks,
+            directionality_risks,
+            narrow_two_way_risks,
+            pedestrian_conflicts,
+        )
         if mode in {"promotion_gate", "hard_reject"} and risk_exceeds_limit
         else []
     )
@@ -67,8 +78,10 @@ def operational_quality_report(layout: LayoutResult) -> dict[str, Any]:
         warnings.append(f"{directionality_risk_score:g} directionality operational risk score is reported")
     if narrow_two_way_risk_score:
         warnings.append(f"{narrow_two_way_risk_score:g} narrow two-way operational risk score is reported")
+    if pedestrian_conflict_risk_score:
+        warnings.append(f"{pedestrian_conflict_risk_score:g} pedestrian-conflict operational risk score is reported")
     return {
-        "version": "phase5q-1",
+        "version": "phase5r-1",
         "status": "active_failed" if not valid else "report_only",
         "mode": mode,
         "valid": valid,
@@ -93,12 +106,16 @@ def operational_quality_report(layout: LayoutResult) -> dict[str, Any]:
         "narrow_two_way_risk_count": narrow_two_way_risks["risk_count"],
         "narrow_two_way_summary": narrow_two_way_risks["summary"],
         "narrow_two_way_summary_risks": narrow_two_way_risks["summary_risks"],
+        "pedestrian_conflict_risk_score": pedestrian_conflict_risk_score,
+        "pedestrian_conflict_risk_count": pedestrian_conflicts["risk_count"],
+        "pedestrian_conflict_summary": pedestrian_conflicts["summary"],
         "warnings": warnings,
         "junctions": junctions,
         "entrance_throats": entrance_throats,
         "route_risks": route_risks,
         "directionality_risks": directionality_risks,
         "narrow_two_way_risks": narrow_two_way_risks,
+        "pedestrian_conflict_risks": pedestrian_conflicts,
     }
 
 
@@ -397,6 +414,124 @@ def _directionality_risk_reports(layout: LayoutResult) -> dict[str, Any]:
         "node_issues": node_issues,
         "stall_issues": stall_issues,
     }
+
+
+_PEDESTRIAN_WATCH_SOURCES = frozenset({"pedestrian_route", "accessible_route"})
+_AREA_EPSILON = 1e-6
+
+
+def _pedestrian_conflict_reports(layout: LayoutResult) -> dict[str, Any]:
+    """Soft proximity/crossing proxy between vehicles and pedestrian/accessible routes.
+
+    Default risk is 0. Not a crossing simulation or pedestrian-capacity proof.
+    """
+    clearance = _nonnegative_float(
+        layout.site.optimization.get("operational_pedestrian_conflict_clearance", 0.0),
+        0.0,
+    )
+    per_issue = _nonnegative_float(
+        layout.site.optimization.get("operational_pedestrian_conflict_risk", 0.0),
+        0.0,
+    )
+    routes = _pedestrian_watch_routes(layout.site)
+    empty = {
+        "version": "phase5r-1",
+        "status": "not_applicable",
+        "risk_count": 0,
+        "risk_score": 0.0,
+        "clearance": clearance,
+        "per_issue_risk": per_issue,
+        "issues": [],
+        "summary": {
+            "route_count": 0,
+            "stall_near_count": 0,
+            "aisle_cross_count": 0,
+            "aisle_near_count": 0,
+        },
+    }
+    if not routes:
+        return empty
+    issues: list[dict[str, Any]] = []
+    for stall in layout.stalls:
+        polygon = ShapelyPolygon(stall.polygon)
+        for route_id, source, geometry in routes:
+            distance = float(polygon.distance(geometry))
+            if distance > clearance + 1e-9:
+                continue
+            issues.append(
+                {
+                    "kind": "stall_touches_pedestrian_route" if distance <= 1e-9 else "stall_near_pedestrian_route",
+                    "stall_id": stall.id,
+                    "served_by_aisle_id": stall.served_by_aisle_id,
+                    "route_id": route_id,
+                    "route_source": source,
+                    "distance": distance,
+                    "risk_score": per_issue,
+                }
+            )
+    for aisle in layout.aisles:
+        polygon = ShapelyPolygon(aisle.polygon)
+        for route_id, source, geometry in routes:
+            overlap = polygon.intersection(geometry).area if not polygon.is_empty and not geometry.is_empty else 0.0
+            distance = float(polygon.distance(geometry))
+            if overlap > _AREA_EPSILON or (polygon.intersects(geometry) and distance <= 1e-9):
+                issues.append(
+                    {
+                        "kind": "aisle_crosses_pedestrian_route",
+                        "aisle_id": aisle.id,
+                        "aisle_role": aisle.role,
+                        "route_id": route_id,
+                        "route_source": source,
+                        "overlap_area": float(overlap),
+                        "distance": distance,
+                        "risk_score": per_issue,
+                    }
+                )
+            elif 0.0 < distance <= clearance + 1e-9:
+                issues.append(
+                    {
+                        "kind": "aisle_near_pedestrian_route",
+                        "aisle_id": aisle.id,
+                        "aisle_role": aisle.role,
+                        "route_id": route_id,
+                        "route_source": source,
+                        "distance": distance,
+                        "risk_score": per_issue,
+                    }
+                )
+    stall_near = sum(1 for item in issues if str(item["kind"]).startswith("stall_"))
+    aisle_cross = sum(1 for item in issues if item["kind"] == "aisle_crosses_pedestrian_route")
+    aisle_near = sum(1 for item in issues if item["kind"] == "aisle_near_pedestrian_route")
+    return {
+        "version": "phase5r-1",
+        "status": "report_only",
+        "risk_count": len(issues),
+        "risk_score": float(len(issues) * per_issue),
+        "clearance": clearance,
+        "per_issue_risk": per_issue,
+        "issues": issues,
+        "summary": {
+            "route_count": len(routes),
+            "stall_near_count": stall_near,
+            "aisle_cross_count": aisle_cross,
+            "aisle_near_count": aisle_near,
+        },
+    }
+
+
+def _pedestrian_watch_routes(site: SiteSpec) -> list[tuple[str, str, Any]]:
+    try:
+        declared = declared_constraint_geometries(site, include_advisory=True)
+    except ValueError:
+        return []
+    routes: list[tuple[str, str, Any]] = []
+    for item in declared:
+        if item.source not in _PEDESTRIAN_WATCH_SOURCES:
+            continue
+        if item.base_geometry is None or item.base_geometry.is_empty:
+            continue
+        routes.append((item.id, item.source, item.base_geometry))
+    return routes
 
 
 def _narrow_two_way_risk_reports(layout: LayoutResult) -> dict[str, Any]:
@@ -1905,6 +2040,7 @@ def _blocking_conflicts(
     route_risks: dict[str, Any],
     directionality_risks: dict[str, Any],
     narrow_two_way_risks: dict[str, Any],
+    pedestrian_conflicts: dict[str, Any] | None = None,
 ) -> list[dict[str, Any]]:
     conflicts: list[dict[str, Any]] = []
     for junction in junctions:
@@ -1943,6 +2079,31 @@ def _blocking_conflicts(
         conflicts.append(directionality)
     for narrow_two_way in _narrow_two_way_conflicts(narrow_two_way_risks):
         conflicts.append(narrow_two_way)
+    for item in _pedestrian_conflict_conflicts(pedestrian_conflicts or {}):
+        conflicts.append(item)
+    return conflicts
+
+
+def _pedestrian_conflict_conflicts(report: dict[str, Any]) -> list[dict[str, Any]]:
+    raw = report.get("issues", [])
+    if not isinstance(raw, list):
+        return []
+    conflicts: list[dict[str, Any]] = []
+    for index, item in enumerate(raw, start=1):
+        if not isinstance(item, dict):
+            continue
+        conflicts.append(
+            {
+                "source_type": "pedestrian_conflict",
+                "source_id": f"OQ-PED-{index}",
+                "kind": item.get("kind"),
+                "stall_id": item.get("stall_id"),
+                "aisle_id": item.get("aisle_id"),
+                "route_id": item.get("route_id"),
+                "distance": item.get("distance"),
+                "risk_score": item.get("risk_score"),
+            }
+        )
     return conflicts
 
 

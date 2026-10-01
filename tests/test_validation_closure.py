@@ -210,7 +210,11 @@ def test_connector_selection_accepts_higher_score_even_with_fewer_stalls(monkeyp
     branch_a = {"id": "A-BRANCH-001"}
     branch_b = {"id": "A-BRANCH-002"}
 
-    monkeypatch.setattr(phase1_candidates, "_connector_pairs", lambda layout: [(branch_a, branch_b)])
+    monkeypatch.setattr(
+        phase1_candidates,
+        "_connector_pairs",
+        lambda layout, parent_aisle_id=None: [(branch_a, branch_b)],
+    )
     monkeypatch.setattr(
         phase1_candidates,
         "_connector_inset_depths",

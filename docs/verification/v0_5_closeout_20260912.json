@@ -1,0 +1,93 @@
+{
+  "date": "2026-09-12",
+  "runtime_commit": "9cfe264",
+  "matrix_commit": "9cca1dad47a699e755e937403851199ebff3fc3b",
+  "tests": {
+    "passed": 552,
+    "elapsed_seconds": 793.56,
+    "coverage_percent": 84.0707544932897,
+    "coverage_minimum": 80
+  },
+  "ruff": "All checks passed!",
+  "build": "passed",
+  "optimizer_wheel": {
+    "python": "E:\\CacheVault\\Temp\\openparkcad-v05-closeout-20260912\\venv\\Scripts\\python.exe",
+    "package": "E:\\CacheVault\\Temp\\openparkcad-v05-closeout-20260912\\venv\\Lib\\site-packages\\openparkcad\\__init__.py",
+    "wheel_sha256": "57a2d9f1d8ffd621302ed7c03d3a9544e36da730980ba5ae080794d5a4240722",
+    "matching_source_modules": 57,
+    "road": {
+      "status": "passed",
+      "valid": true,
+      "stall_count": 20,
+      "stall_coverage": 20,
+      "layout_identity": "d2cc04b75e5a0516242bd060b6b411a00daa4e8cec954ed2712384e5e02d1ea4"
+    },
+    "schemas_installed": true,
+    "external_root": "E:\\CacheVault\\Temp\\openparkcad-v05-closeout-20260912",
+    "output_hashes_verified": [
+      "dxf",
+      "svg",
+      "report",
+      "review_bundle"
+    ],
+    "human_review": "not_reviewed"
+  },
+  "project_wheel": {
+    "save_reopen_export": "passed",
+    "road_lock_regenerate": "passed",
+    "stalls": 72,
+    "skeleton_id": "road-skeleton-1:35bc050858508b40a1018b2b76dbddc72fe768c71ce4e43405bdcd59fb7e3053",
+    "object_mapping_count": 78
+  },
+  "default_wheel": {
+    "disabled": "passed",
+    "excluded_family": "passed",
+    "promotion_off": "passed",
+    "missing_optimizer_fallback": "passed",
+    "ortools_installed": false,
+    "baseline_stalls": 42,
+    "ladder_stalls": 72
+  },
+  "matrix_runner": {
+    "same_identity_resume": "passed",
+    "changed_identity_rejected": "passed",
+    "windows_timeout_child_terminated": "passed",
+    "worker_pid": 38308
+  },
+  "browser": {
+    "browser": "Codex in-app browser",
+    "url": "http://127.0.0.1:18763/review.html",
+    "observed_steps": [
+      "72-stall official initially selected",
+      "switch to 64-stall preview updates skeleton and road-role details",
+      "uncheck stalls removes checked state and hides stall geometry",
+      "recheck stalls and return to official",
+      "no warning or error console entries"
+    ],
+    "screenshots": {
+      "viewer-official.png": "f8fe903508707bd015944e71baab617904cce4efe68bc1fe36984c03dae88970",
+      "viewer-preview.png": "07356b432f30fff4dc465a2541ddb249d361c13461552530bb9a6bfd154ecf50"
+    }
+  },
+  "matrix": {
+    "state_at_recording": "running",
+    "plan": {
+      "total_cells": 1152,
+      "cases": 24,
+      "variants": 16,
+      "repeats": 3,
+      "timeout_seconds": 180.0,
+      "limit": null,
+      "case_id_filter": []
+    },
+    "live_progress": "output\\verification\\v0_5\\20260912-closeout\\matrix\\progress.json",
+    "completion_summary": "output\\verification\\v0_5\\20260912-closeout\\matrix\\summary.json"
+  },
+  "acceptance": {
+    "N8": "implemented_and_verified",
+    "N5": "bounded_wide_bay_only",
+    "N9": "not_accepted",
+    "field": "not_validated",
+    "release": "not_published"
+  }
+}

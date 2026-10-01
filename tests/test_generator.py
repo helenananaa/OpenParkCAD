@@ -1,6 +1,9 @@
+from dataclasses import replace
+
 from shapely.geometry import Polygon as ShapelyPolygon
 
 from openparkcad import diagnostics
+from openparkcad.candidate_catalog import NETWORK_PREVIEW_VERSION, PROMOTION_VERSION, SELECTOR_VERSION, SNAPSHOT_VERSION
 from openparkcad.candidate_layout_preview import _promotion_blockers, candidate_layout_preview_report
 from openparkcad.candidate_network_preview import candidate_network_preview_report
 from openparkcad.candidate_selector import select_candidate_objects
@@ -8,7 +11,16 @@ from openparkcad.candidate_snapshot import candidate_snapshot_report
 from openparkcad.diagnostics import build_input_diagnostics
 from openparkcad.exporter_svg import write_svg
 from openparkcad.generator import generate_layout
-from openparkcad.models import AisleClassSpec, AngleAttempt, CandidateObject, EntranceSpec, LayoutResult, SiteSpec, StallSpec
+from openparkcad.models import (
+    AisleClassSpec,
+    AngleAttempt,
+    CandidateObject,
+    EntranceSpec,
+    LayoutResult,
+    SiteSpec,
+    StallSpec,
+    VehicleSpec,
+)
 from openparkcad.phase1_support import phase1_unsupported_inputs
 
 
@@ -66,14 +78,16 @@ def test_phase4a_candidate_snapshot_reports_selected_and_evaluated_objects():
     assert any(candidate.kind == "stall" and candidate.geometry for candidate in layout.candidate_objects)
 
     report = candidate_snapshot_report(layout)
-    assert report["version"] == "phase4b-1"
+    assert report["version"] == SNAPSHOT_VERSION
     assert report["object_count"] == len(layout.candidate_objects)
     assert report["status_counts"]["selected"] > 0
+    assert report["catalog_counts"]["base"] > 0
     assert "conflict_count" in report
     assert "conflict_matrix" in report
     assert all(set(item) == {"left_id", "right_id", "type", "overlap_area"} for item in report["conflict_matrix"])
-    assert report["selection"]["version"] == "phase4c-3c"
+    assert report["selection"]["version"] == SELECTOR_VERSION
     assert report["selection"]["status"] == "shadow_only"
+    assert report["selection"]["backend"] == "greedy"
     selected_ids = set(report["selection"]["selected_ids"])
     for conflict in report["conflict_matrix"]:
         assert not {conflict["left_id"], conflict["right_id"]} <= selected_ids
@@ -87,10 +101,13 @@ def test_phase4a_candidate_snapshot_reports_selected_and_evaluated_objects():
     assert input_diagnostics["field_support"]["optimization.candidate_layout_preview_scoring"] == "active"
     assert input_diagnostics["field_support"]["optimization.promote_candidate_layout_preview"] == "available"
     assert input_diagnostics["field_support"]["diagnostics.svg_candidate_network_preview"] == "active"
-    assert input_diagnostics["candidate_snapshot"]["version"] == "phase4b-1"
-    assert input_diagnostics["candidate_snapshot"]["selection_version"] == "phase4c-3c"
+    assert input_diagnostics["candidate_snapshot"]["version"] == SNAPSHOT_VERSION
+    assert input_diagnostics["candidate_snapshot"]["selection_version"] == SELECTOR_VERSION
+    assert input_diagnostics["field_support"]["optimization.discrete_candidate_catalog"] == "active"
+    assert input_diagnostics["field_support"]["optimization.selector_backend"] == "active"
+    assert input_diagnostics["field_support"]["optimization.selector_backend_cpsat"] == "available"
     assert "connector_candidate_count" in input_diagnostics["candidate_snapshot"]
-    assert input_diagnostics["candidate_network_preview"]["version"] == "phase4c-4b"
+    assert input_diagnostics["candidate_network_preview"]["version"] == NETWORK_PREVIEW_VERSION
     assert input_diagnostics["candidate_network_preview"]["validation_valid"] is True
 
 
@@ -136,7 +153,7 @@ def test_phase4b_shadow_selector_can_select_compatible_branch_candidates():
 
     layout = generate_layout(site)
 
-    assert layout.candidate_selection["version"] == "phase4c-3c"
+    assert layout.candidate_selection["version"] == SELECTOR_VERSION
     assert layout.candidate_selection["selected_count"] > 0
     assert layout.candidate_selection["selected_branch_count"] <= site.optimization["max_branches"]
     assert layout.candidate_selection["max_branches"] == site.optimization["max_branches"]
@@ -145,16 +162,21 @@ def test_phase4b_shadow_selector_can_select_compatible_branch_candidates():
         for item in layout.candidate_selection["rejected"]
     )
     preview = candidate_network_preview_report(layout)
-    assert preview["version"] == "phase4c-4b"
+    assert preview["version"] == NETWORK_PREVIEW_VERSION
     assert preview["status"] == "preview_only"
     assert preview["base_aisle_count"] >= 1
-    assert preview["shadow_aisle_count"] == layout.candidate_selection["selected_count"]
+    aisle_selected_ids = [
+        item_id
+        for item_id in layout.candidate_selection["selected_ids"]
+        if not str(item_id).startswith("C-MODULE-")
+    ]
+    assert preview["shadow_aisle_count"] == len(aisle_selected_ids)
     assert preview["valid_no_internal_conflicts"] is True
-    assert preview["validation"]["version"] == "phase4c-4b"
+    assert preview["validation"]["version"] == NETWORK_PREVIEW_VERSION
     assert preview["validation"]["valid"] is True
     assert preview["validation"]["geometry_containment"]["valid"] is True
     assert preview["validation"]["traffic_graph"]["valid"] is True
-    assert set(layout.candidate_selection["selected_ids"]) <= set(preview["selected_candidate_ids"])
+    assert set(aisle_selected_ids) <= set(preview["selected_candidate_ids"])
     layout_preview = candidate_layout_preview_report(layout)
     assert layout_preview["version"] == "phase4c-2a"
     assert layout_preview["status"] == "preview_only"
@@ -277,7 +299,7 @@ def test_phase4c_shadow_selector_can_select_loop_bundle():
 
     selection = select_candidate_objects(objects, site)
 
-    assert selection["version"] == "phase4c-3c"
+    assert selection["version"] == SELECTOR_VERSION
     assert selection["eligible_bundle_count"] == 1
     assert selection["selected_bundle_count"] == 1
     assert selection["selected_branch_count"] == 2
@@ -431,7 +453,7 @@ def test_phase4c_candidate_layout_promotion_requires_explicit_flag():
     layout = generate_layout(_phase1_site())
 
     assert layout.generation_mode == "phase1_main_aisle"
-    assert layout.candidate_layout_promotion["version"] == "phase4c-2b"
+    assert layout.candidate_layout_promotion["version"] == PROMOTION_VERSION
     assert layout.candidate_layout_promotion["requested"] is False
     assert layout.candidate_layout_promotion["status"] == "not_requested"
     assert layout.candidate_layout_promotion["official_output_replaced"] is False
@@ -476,8 +498,9 @@ def test_phase4c_candidate_layout_promotion_can_replace_official_output():
     assert layout.candidate_layout_promotion["status"] == "promoted"
     assert layout.candidate_layout_promotion["official_output_replaced"] is True
     assert layout.candidate_layout_preview["comparison"]["promotion_eligible"] is True
-    assert {aisle.id for aisle in layout.aisles} == {"PN-AISLE-001", "PN-AISLE-002"}
-    assert {stall.served_by_aisle_id for stall in layout.stalls} == {"PN-AISLE-001"}
+    assert {aisle.id for aisle in layout.aisles} == {"A-MAIN", "A-TURNAROUND"}
+    assert {stall.served_by_aisle_id for stall in layout.stalls} == {"A-MAIN"}
+    assert layout.candidate_layout_promotion["official_id_scheme"] == "catalog_source_id"
     assert layout.score["total"] == layout.candidate_layout_preview["score"]["total"]
     diagnostics = build_input_diagnostics(layout.site, layout)
     assert diagnostics["field_support"]["optimization.promote_candidate_layout_preview"] == "active"
@@ -528,7 +551,7 @@ def test_phase4c_candidate_layout_promotion_adds_shadow_branch_turnarounds():
     layout = generate_layout(site)
 
     assert layout.generation_mode == "candidate_layout_promoted"
-    assert layout.candidate_network_preview["version"] == "phase4c-4b"
+    assert layout.candidate_network_preview["version"] == NETWORK_PREVIEW_VERSION
     assert layout.candidate_network_preview["shadow_turnaround_count"] > 0
     assert layout.candidate_layout_promotion["status"] == "promoted"
     assert layout.candidate_layout_promotion["official_output_replaced"] is True
@@ -713,24 +736,24 @@ def test_phase1_layout_keeps_generated_geometry_inside_usable_area():
         assert usable.covers(ShapelyPolygon(stall.polygon))
 
 
-def test_phase1_layout_requires_supported_wide_two_way_aisle():
+def test_phase1_layout_rejects_narrow_two_way_aisle():
     site = _phase1_site()
     unsupported = SiteSpec(
         name=site.name,
         boundary=site.boundary,
         stall=site.stall,
-        aisle_width=site.aisle_width,
+        aisle_width=3.5,
         margin=site.margin,
         entrances=site.entrances,
         aisle_classes=[
             AisleClassSpec(
-                id="narrow-one-way",
+                id="narrow-two-way",
                 width=3.5,
                 capacity="single_vehicle",
-                directionality="one_way",
+                directionality="two_way",
             )
         ],
-        fixed_aisle_class="narrow-one-way",
+        fixed_aisle_class="narrow-two-way",
         source_format="phase0",
     )
 
@@ -740,7 +763,7 @@ def test_phase1_layout_requires_supported_wide_two_way_aisle():
     assert layout.stall_count == 0
     assert layout.aisles == []
     assert layout.unsupported_phase1_inputs
-    assert layout.unsupported_phase1_inputs[0]["field"] == "aisles.classes.narrow-one-way"
+    assert layout.unsupported_phase1_inputs[0]["field"] == "aisles.classes.narrow-two-way"
 
 
 def test_phase2b_rejects_candidates_without_exit_path():
@@ -781,9 +804,9 @@ def test_phase2b_rejects_candidates_without_exit_path():
 
 def test_phase1_reports_unsupported_stall_types_clearly():
     site = SiteSpec(
-        name="parallel",
+        name="painted",
         boundary=[(0, 0), (30, 0), (30, 34), (0, 34)],
-        stall=StallSpec(width=2.5, length=6.0, family="parallel", allowed_angles=(0.0,), access_sides=("left", "right")),
+        stall=StallSpec(width=2.5, length=5.0, family="painted", allowed_angles=(90.0,)),
         aisle_width=6.0,
         margin=0.0,
         entrances=[
@@ -812,9 +835,382 @@ def test_phase1_reports_unsupported_stall_types_clearly():
     assert layout.stall_count == 0
     assert {item["field"] for item in layout.unsupported_phase1_inputs} == {
         "parking.active_stall.family",
-        "parking.active_stall.access_sides",
     }
     assert diagnostics["unsupported_phase1_inputs"] == layout.unsupported_phase1_inputs
+
+
+def test_t_end_stalls_generate_at_main_dead_end():
+    site = SiteSpec(
+        name="t-end-main",
+        boundary=[(0, 0), (24, 0), (24, 40), (0, 40)],
+        stall=StallSpec(
+            id="t-end",
+            width=2.5,
+            length=5.0,
+            family="t_end",
+            allowed_angles=(90.0,),
+            access_sides=("front",),
+        ),
+        aisle_width=6.0,
+        margin=0.0,
+        entrances=[
+            EntranceSpec(
+                id="main",
+                mode="shared",
+                center=(12, 0),
+                width=7.0,
+                heading_degrees=90.0,
+            )
+        ],
+        aisle_classes=[
+            AisleClassSpec(
+                id="wide-two-way-no-cross",
+                width=6.0,
+                capacity="two_vehicle",
+                directionality="two_way",
+            )
+        ],
+        fixed_aisle_class="wide-two-way-no-cross",
+        optimization={
+            "heading_deltas_degrees": [0],
+            "entrance_offsets": [0],
+            "enable_branches": False,
+        },
+    )
+
+    layout = generate_layout(site)
+    diagnostics = build_input_diagnostics(site, layout)
+
+    assert layout.stall_count > 0
+    assert all(stall.aisle_side == "end" for stall in layout.stalls)
+    assert {stall.served_by_aisle_id for stall in layout.stalls} == {"A-TURNAROUND"}
+    assert layout.maneuver_validation["valid"] is True
+    assert layout.maneuver_validation["rule_support"]["t_end_proxy"] == "active"
+    assert diagnostics["field_support"]["parking.t_end"] == "active"
+
+
+def test_t_end_exact_vehicle_check_reserves_envelope_clearance_from_site_edge():
+    site = SiteSpec(
+        name="t-end-exact-edge",
+        boundary=[(0, 0), (24, 0), (24, 40), (0, 40)],
+        stall=StallSpec(
+            id="t-end",
+            width=2.5,
+            length=5.0,
+            family="t_end",
+            allowed_angles=(90.0,),
+            access_sides=("front",),
+        ),
+        aisle_width=6.0,
+        margin=0.0,
+        vehicle=VehicleSpec(
+            length=4.8,
+            width=1.9,
+            wheelbase=2.8,
+            min_turning_radius=5.5,
+            turning_radius_reference="outer_front_wheel",
+            track_width=1.6,
+            front_overhang=1.0,
+            rear_overhang=1.0,
+            swept_path_margin=0.3,
+            max_reverse_distance=12.0,
+        ),
+        constraints={"maneuvering": {"require_swept_path_check": True}},
+        entrances=[
+            EntranceSpec(
+                id="main",
+                mode="shared",
+                center=(12, 0),
+                width=7.0,
+                heading_degrees=90.0,
+            )
+        ],
+        aisle_classes=[
+            AisleClassSpec(
+                id="wide-two-way-no-cross",
+                width=6.0,
+                capacity="two_vehicle",
+                directionality="two_way",
+                centerline_crossing="allowed",
+            )
+        ],
+        fixed_aisle_class="wide-two-way-no-cross",
+        optimization={
+            "heading_deltas_degrees": [0],
+            "entrance_offsets": [0],
+            "enable_branches": False,
+        },
+    )
+    without_exact = generate_layout(replace(site, vehicle=None, constraints={}))
+    layout = generate_layout(site)
+    assert without_exact.stall_count > 0
+    assert layout.stall_count > 0
+    assert all(stall.aisle_side == "end" for stall in layout.stalls)
+    far_without = max(point[1] for stall in without_exact.stalls for point in stall.polygon)
+    far_with = max(point[1] for stall in layout.stalls for point in stall.polygon)
+    assert far_with <= far_without - 0.3 + 1e-6
+    assert layout.maneuver_validation["valid"] is True
+    assert layout.maneuver_validation["vehicle_validation"]["valid"] is True
+    assert layout.maneuver_validation["vehicle_rule_counts"]["reverse_in_t_end_bicycle_v1"] == layout.stall_count
+
+
+def test_t_end_caps_can_augment_perpendicular_layout():
+    # Extra depth beyond the aisle body lets end-caps place without shortening sides.
+    base = SiteSpec(
+        name="perp-no-caps",
+        boundary=[(0, 0), (24, 0), (24, 48), (0, 48)],
+        stall=StallSpec(id="standard-90", width=2.5, length=5.0, family="perpendicular", allowed_angles=(90.0,)),
+        aisle_width=6.0,
+        margin=0.0,
+        entrances=[
+            EntranceSpec(id="main", mode="shared", center=(12, 0), width=7.0, heading_degrees=90.0)
+        ],
+        aisle_classes=[
+            AisleClassSpec(id="wide-two-way-no-cross", width=6.0, capacity="two_vehicle", directionality="two_way")
+        ],
+        fixed_aisle_class="wide-two-way-no-cross",
+        optimization={
+            "heading_deltas_degrees": [0],
+            "entrance_offsets": [0],
+            "enable_branches": False,
+            "enable_t_end_caps": False,
+        },
+    )
+    with_caps = SiteSpec(
+        name="perp-with-caps",
+        boundary=base.boundary,
+        stall=base.stall,
+        aisle_width=base.aisle_width,
+        margin=base.margin,
+        entrances=base.entrances,
+        aisle_classes=base.aisle_classes,
+        fixed_aisle_class=base.fixed_aisle_class,
+        optimization={
+            "heading_deltas_degrees": [0],
+            "entrance_offsets": [0],
+            "enable_branches": False,
+            "enable_t_end_caps": True,
+        },
+    )
+
+    layout_base = generate_layout(base)
+    layout_caps = generate_layout(with_caps)
+
+    assert any(stall.aisle_side == "end" for stall in layout_caps.stalls)
+    assert all(stall.aisle_side != "end" for stall in layout_base.stalls)
+    assert layout_caps.maneuver_validation["valid"] is True
+    assert layout_caps.graph_validation.get("valid") is True
+
+
+def test_parallel_stalls_generate_on_main_aisle():
+    """Narrow strip sites fit parallel modules where dual-side 90-degree stalls do not."""
+    site = SiteSpec(
+        name="parallel-strip",
+        # Depth along the aisle is long; cross-section is only wide enough for aisle + parallel rows.
+        boundary=[(0, 0), (14, 0), (14, 52), (0, 52)],
+        stall=StallSpec(
+            id="parallel",
+            width=2.2,
+            length=6.0,
+            family="parallel",
+            allowed_angles=(0.0,),
+            access_sides=("left", "right"),
+        ),
+        aisle_width=6.0,
+        margin=0.0,
+        entrances=[
+            EntranceSpec(
+                id="main",
+                mode="shared",
+                center=(7, 0),
+                width=8.0,
+                heading_degrees=90.0,
+            )
+        ],
+        aisle_classes=[
+            AisleClassSpec(
+                id="wide-two-way-no-cross",
+                width=6.0,
+                capacity="two_vehicle",
+                directionality="two_way",
+            )
+        ],
+        fixed_aisle_class="wide-two-way-no-cross",
+        optimization={
+            "heading_deltas_degrees": [0],
+            "entrance_offsets": [0],
+            "enable_branches": False,
+        },
+    )
+
+    layout = generate_layout(site)
+    diagnostics = build_input_diagnostics(site, layout)
+
+    assert layout.stall_count > 0
+    assert layout.generation_mode == "phase1_main_aisle"
+    assert all(stall.stall_type_id == "parallel" for stall in layout.stalls)
+    assert {stall.served_by_aisle_id for stall in layout.stalls} == {"A-MAIN"}
+    assert layout.maneuver_validation["valid"] is True
+    assert layout.maneuver_validation["rule_support"]["parallel_proxy"] == "active"
+    assert diagnostics["field_support"]["parking.parallel_main_aisle_generation"] == "active"
+    assert diagnostics["field_support"]["parking.parallel_maneuver_proxy"] == "active"
+    assert not any(item["field"] == "parking.active_stall.family" for item in layout.unsupported_phase1_inputs)
+
+
+def test_parallel_branch_stalls_can_be_selected():
+    site = SiteSpec(
+        name="parallel-branch",
+        boundary=[(0, 0), (70, 0), (70, 48), (0, 48)],
+        stall=StallSpec(
+            id="parallel",
+            width=2.2,
+            length=6.0,
+            family="parallel",
+            allowed_angles=(0.0,),
+            access_sides=("left", "right"),
+        ),
+        aisle_width=6.0,
+        margin=0.0,
+        entrances=[
+            EntranceSpec(
+                id="main",
+                mode="shared",
+                center=(35, 0),
+                width=8.0,
+                heading_degrees=90.0,
+            )
+        ],
+        aisle_classes=[
+            AisleClassSpec(
+                id="wide-two-way-no-cross",
+                width=6.0,
+                capacity="two_vehicle",
+                directionality="two_way",
+            )
+        ],
+        fixed_aisle_class="wide-two-way-no-cross",
+        optimization={
+            "heading_deltas_degrees": [0],
+            "entrance_offsets": [0],
+            "max_branches": 2,
+            "enable_connectors": False,
+        },
+    )
+
+    layout = generate_layout(site)
+
+    assert layout.stall_count > 0
+    assert layout.selected_branches
+    branch_ids = {branch["id"] for branch in layout.selected_branches}
+    assert any(stall.served_by_aisle_id in branch_ids for stall in layout.stalls)
+    assert layout.maneuver_validation["rule_counts"].get("parallel_proxy", 0) == layout.stall_count
+
+
+def test_parallel_connector_stalls_are_official_when_connectors_score():
+    site = SiteSpec(
+        name="parallel-connector",
+        boundary=[(0, 0), (80, 0), (80, 56), (0, 56)],
+        stall=StallSpec(
+            id="parallel",
+            width=2.2,
+            length=6.0,
+            family="parallel",
+            allowed_angles=(0.0,),
+            access_sides=("left", "right"),
+        ),
+        aisle_width=6.0,
+        margin=0.0,
+        entrances=[
+            EntranceSpec(
+                id="main",
+                mode="shared",
+                center=(40, 0),
+                width=8.0,
+                heading_degrees=90.0,
+            )
+        ],
+        aisle_classes=[
+            AisleClassSpec(
+                id="wide-two-way-no-cross",
+                width=6.0,
+                capacity="two_vehicle",
+                directionality="two_way",
+            )
+        ],
+        fixed_aisle_class="wide-two-way-no-cross",
+        optimization={
+            "heading_deltas_degrees": [0],
+            "entrance_offsets": [0],
+            "branch_start_positions": [12, 24, 36],
+            "branch_sides": ["left"],
+            "max_branches": 2,
+            "enable_connectors": True,
+            "enable_t_end_caps": False,
+        },
+    )
+    layout = generate_layout(site)
+    connector_ids = {item["id"] for item in layout.selected_connectors}
+    assert connector_ids
+    connector_stalls = [stall for stall in layout.stalls if stall.served_by_aisle_id in connector_ids]
+    assert connector_stalls
+    assert {stall.stall_type_id for stall in connector_stalls} == {"parallel"}
+    assert layout.maneuver_validation["rule_counts"].get("parallel_proxy", 0) == layout.stall_count
+    diagnostics = build_input_diagnostics(site, layout)
+    assert diagnostics["field_support"]["parking.parallel_connector_generation"] == "active"
+
+
+def test_angled_connector_stalls_are_official_when_connectors_score():
+    site = SiteSpec(
+        name="angled-connector",
+        boundary=[(0, 0), (90, 0), (90, 70), (0, 70)],
+        stall=StallSpec(id="angled-60", width=2.5, length=5.0, family="angled", allowed_angles=(60.0,)),
+        aisle_width=6.0,
+        margin=0.0,
+        entrances=[
+            EntranceSpec(
+                id="main",
+                mode="shared",
+                center=(45, 0),
+                width=8.0,
+                heading_degrees=90.0,
+            )
+        ],
+        aisle_classes=[
+            AisleClassSpec(
+                id="wide-two-way-no-cross",
+                width=6.0,
+                capacity="two_vehicle",
+                directionality="two_way",
+            )
+        ],
+        fixed_aisle_class="wide-two-way-no-cross",
+        optimization={
+            "heading_deltas_degrees": [0],
+            "entrance_offsets": [0],
+            "branch_start_positions": [18, 32, 46],
+            "branch_sides": ["left"],
+            "max_branches": 2,
+            "enable_connectors": True,
+            "connector_throat_length": 3.0,
+            "connector_inset_depths": [0, 5.0],
+            "enable_t_end_caps": False,
+            "weights": {
+                "stall_count": 100,
+                "aisle_area": 0,
+                "dead_end_length": -20,
+                "branch_count": 0,
+            },
+        },
+    )
+    layout = generate_layout(site)
+    connector_ids = {item["id"] for item in layout.selected_connectors}
+    assert connector_ids
+    connector_stalls = [stall for stall in layout.stalls if stall.served_by_aisle_id in connector_ids]
+    assert connector_stalls
+    assert {stall.stall_type_id for stall in connector_stalls} == {"angled-60"}
+    assert layout.maneuver_validation["rule_counts"].get("angled_proxy", 0) == layout.stall_count
+    diagnostics = build_input_diagnostics(site, layout)
+    assert diagnostics["field_support"]["parking.angled_connector_generation"] == "active"
 
 
 def test_phase3d_generates_angled_stalls_on_main_aisle():
@@ -908,7 +1304,9 @@ def test_phase3d_can_add_angled_branch_stalls():
     assert layout.graph_validation["valid"] is True
     assert layout.maneuver_validation["valid"] is True
     assert layout.maneuver_validation["rule_counts"] == {"angled_proxy": layout.stall_count}
-    assert any(item["reason"] == "connectors_not_supported_for_stall_family" for item in layout.attempts[0].branch_candidates)
+    assert not any(
+        item["reason"] == "connectors_not_supported_for_stall_family" for item in layout.attempts[0].branch_candidates
+    )
 
 
 def test_phase3f_compares_stall_type_assignments_by_aisle_role():

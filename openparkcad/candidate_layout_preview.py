@@ -1,15 +1,22 @@
 from __future__ import annotations
 
+from dataclasses import replace
 from typing import Any
 
 from shapely.geometry import Polygon as ShapelyPolygon
 
+from openparkcad.candidate_catalog import STALL_MODULE_KIND
 from openparkcad.candidate_network_preview import candidate_network_preview_report
+from openparkcad.engineering_validation import build_engineering_validation
 from openparkcad.layout_geometry import available_area
 from openparkcad.maneuver_validation import apply_maneuver_filter, validate_maneuvers
 from openparkcad.models import LayoutResult, ParkingAisle, ParkingStall
 from openparkcad.operational_quality import operational_quality_report
-from openparkcad.scoring import score_metrics
+from openparkcad.phase1_support import aisle_directionality
+from openparkcad.scoring import score_metrics, stall_family_score_metrics
+from openparkcad.contact_retarget import apply_contact_retarget
+from openparkcad.site_constraints import apply_contact_filter
+from openparkcad.site_constraints import validate_site_constraints
 from openparkcad.traffic_graph import traffic_graph_summary
 
 
@@ -19,6 +26,12 @@ def build_candidate_layout_preview(layout: LayoutResult) -> dict[str, object]:
     stalls = _preview_stalls(layout, aisles)
     preview_layout = _preview_layout(layout, aisles, stalls)
     preview_layout = apply_maneuver_filter(preview_layout)
+    before = [(stall.id, stall.stall_type_id, tuple(stall.polygon)) for stall in preview_layout.stalls]
+    preview_layout = apply_contact_retarget(preview_layout)
+    after = [(stall.id, stall.stall_type_id, tuple(stall.polygon)) for stall in preview_layout.stalls]
+    if after != before:
+        preview_layout = apply_maneuver_filter(preview_layout)
+    preview_layout = apply_contact_filter(preview_layout)
     stalls = _renumber_preview_stalls(_preview_stalls_matching_layout(stalls, preview_layout))
     preview_layout = _preview_layout(layout, aisles, stalls)
     validation = _validate_layout_preview(layout, preview_layout, aisles, stalls)
@@ -64,8 +77,11 @@ def _preview_aisles(network: dict[str, object]) -> list[dict[str, object]]:
 def _preview_stalls(layout: LayoutResult, aisles: list[dict[str, object]]) -> list[dict[str, object]]:
     stalls: list[dict[str, object]] = []
     current_layout_source_to_preview_id = _current_layout_source_to_preview_id(aisles)
+    allowed = _selected_module_stall_allowance(layout)
     for stall in layout.stalls:
         if stall.served_by_aisle_id not in current_layout_source_to_preview_id:
+            continue
+        if allowed is not None and stall.id not in allowed["official"]:
             continue
         stalls.append(
             _preview_stall(
@@ -89,6 +105,11 @@ def _preview_stalls(layout: LayoutResult, aisles: list[dict[str, object]]) -> li
         for item in generated:
             if not isinstance(item, dict) or not _valid_polygon(item.get("geometry")):
                 continue
+            if allowed is not None:
+                parent_candidate = str(aisle.get("candidate_id") or "")
+                source_id = str(item.get("source_id") or "")
+                if (parent_candidate, source_id) not in allowed["generated"]:
+                    continue
             stalls.append(
                 _preview_stall(
                     source_id=str(item.get("source_id", "")),
@@ -101,6 +122,47 @@ def _preview_stalls(layout: LayoutResult, aisles: list[dict[str, object]]) -> li
                     index=len(stalls) + 1,
                 )
             )
+        if allowed is not None:
+            extra = allowed.get("family_generated_by_candidate", {})
+            parent_candidate = str(aisle.get("candidate_id") or "")
+            if isinstance(extra, dict) and parent_candidate in extra:
+                for item in extra[parent_candidate]:
+                    if not isinstance(item, dict) or not _valid_polygon(item.get("geometry")):
+                        continue
+                    stalls.append(
+                        _preview_stall(
+                            source_id=str(item.get("source_id", "")),
+                            polygon=item["geometry"],
+                            angle_degrees=float(item.get("angle_degrees", 0.0)),
+                            served_by_aisle_id=str(aisle["id"]),
+                            aisle_side=str(item.get("aisle_side")) if item.get("aisle_side") is not None else None,
+                            stall_type_id=str(item.get("stall_type_id")) if item.get("stall_type_id") is not None else None,
+                            source="shadow_family",
+                            index=len(stalls) + 1,
+                        )
+                    )
+    if allowed is not None:
+        family_generated = allowed.get("family_generated", {})
+        if isinstance(family_generated, dict):
+            for served, items in family_generated.items():
+                preview_id = current_layout_source_to_preview_id.get(str(served))
+                if not preview_id or not isinstance(items, list):
+                    continue
+                for item in items:
+                    if not isinstance(item, dict) or not _valid_polygon(item.get("geometry")):
+                        continue
+                    stalls.append(
+                        _preview_stall(
+                            source_id=str(item.get("source_id", "")),
+                            polygon=item["geometry"],
+                            angle_degrees=float(item.get("angle_degrees", 0.0)),
+                            served_by_aisle_id=str(preview_id),
+                            aisle_side=str(item.get("aisle_side")) if item.get("aisle_side") is not None else None,
+                            stall_type_id=str(item.get("stall_type_id")) if item.get("stall_type_id") is not None else None,
+                            source="shadow_family",
+                            index=len(stalls) + 1,
+                        )
+                    )
     return _without_layout_conflicts(stalls, aisles)
 
 
@@ -208,6 +270,17 @@ def _validate_layout_preview(
     maneuver = validate_maneuvers(preview_layout)
     graph = traffic_graph_summary(preview_layout)
     operational = operational_quality_report(preview_layout)
+    site_constraints = validate_site_constraints(preview_layout)
+    validated_preview = replace(
+        preview_layout,
+        maneuver_validation=maneuver,
+        site_constraint_validation=site_constraints,
+        operational_quality=operational,
+    )
+    from openparkcad.road_traversal import apply_road_traversal, road_traversal_publication_error
+
+    validated_preview = apply_road_traversal(validated_preview, result_layout_id="candidate_preview")
+    engineering = build_engineering_validation(validated_preview, result_scope="candidate_preview")
     association = _stall_association_validation(aisles, stalls)
     errors: list[str] = []
     if not containment["valid"]:
@@ -218,8 +291,12 @@ def _validate_layout_preview(
         errors.append("preview_layout_traffic_graph_invalid")
     if not operational["valid"]:
         errors.append("preview_layout_operational_quality_invalid")
+    if not site_constraints["valid"]:
+        errors.append("preview_layout_site_constraints_invalid")
     if not association["valid"]:
         errors.append("preview_layout_stall_association_invalid")
+    if road_traversal_publication_error(validated_preview):
+        errors.append("preview_layout_road_traversal_invalid")
     return {
         "version": "phase4c-1",
         "status": "preview_only",
@@ -228,8 +305,11 @@ def _validate_layout_preview(
         "geometry_containment": containment,
         "stall_association": association,
         "maneuver_validation": maneuver,
+        "site_constraint_validation": site_constraints,
+        "engineering_validation": engineering,
         "operational_quality": operational,
         "traffic_graph": graph,
+        "road_traversal_validation": validated_preview.road_traversal_validation,
     }
 
 
@@ -249,6 +329,7 @@ def _preview_score(
         "dead_end_length": _preview_dead_end_length(aisles),
         "operational_risk": float(operational["risk_score"]),
     }
+    metrics.update(stall_family_score_metrics(layout.site, stalls))
     return score_metrics(layout.site, metrics)
 
 
@@ -472,6 +553,9 @@ def _parking_aisle(raw: dict[str, object], layout: LayoutResult, source_to_previ
         metadata = {}
     parent_aisle_id = _mapped_parent_id(raw, metadata, source_to_preview_id)
     connected_aisle_ids = _mapped_connected_ids(metadata, source_to_preview_id)
+    directionality = metadata.get("directionality")
+    if not isinstance(directionality, str):
+        directionality = aisle_directionality(layout.site)
     return ParkingAisle(
         id=str(raw["id"]),
         polygon=[(float(x), float(y)) for x, y in raw["geometry"]],
@@ -480,6 +564,7 @@ def _parking_aisle(raw: dict[str, object], layout: LayoutResult, source_to_previ
         connected_to_entrance_id=_optional_str(metadata.get("connected_to_entrance_id")),
         parent_aisle_id=parent_aisle_id,
         connected_aisle_ids=connected_aisle_ids,
+        directionality=directionality if directionality in {"one_way", "two_way"} else "two_way",
     )
 
 
@@ -505,6 +590,47 @@ def _source_to_preview_id(aisles: list[dict[str, object]]) -> dict[str, str]:
             if value:
                 mapping.setdefault(str(value), str(aisle_id))
     return mapping
+
+
+def _selected_module_stall_allowance(layout: LayoutResult) -> dict[str, object] | None:
+    """If stall modules exist, preview stalls must belong to a selected module."""
+    modules = [item for item in layout.candidate_objects if item.kind == STALL_MODULE_KIND]
+    if not modules:
+        return None
+    selected_ids = {str(item) for item in layout.candidate_selection.get("selected_ids", [])}
+    official: set[str] = set()
+    generated: set[tuple[str, str]] = set()
+    family_generated: dict[str, list[dict[str, object]]] = {}
+    family_generated_by_candidate: dict[str, list[dict[str, object]]] = {}
+    for module in modules:
+        if module.id not in selected_ids:
+            continue
+        stall_ids = module.metadata.get("stall_source_ids", [])
+        if not isinstance(stall_ids, list | tuple):
+            continue
+        if module.metadata.get("shadow_family"):
+            raw = module.metadata.get("generated_stalls", [])
+            stalls = [item for item in raw if isinstance(item, dict)] if isinstance(raw, list) else []
+            if module.metadata.get("parent_is_base"):
+                served = str(module.metadata.get("served_by_aisle_id") or "")
+                if served and stalls:
+                    family_generated.setdefault(served, []).extend(stalls)
+            else:
+                parent = str(module.metadata.get("parent_candidate_id") or "")
+                if parent and stalls:
+                    family_generated_by_candidate.setdefault(parent, []).extend(stalls)
+            continue
+        if module.metadata.get("parent_is_base"):
+            official.update(str(item) for item in stall_ids)
+            continue
+        parent = str(module.metadata.get("parent_candidate_id") or "")
+        generated.update((parent, str(item)) for item in stall_ids if item)
+    return {
+        "official": official,
+        "generated": generated,
+        "family_generated": family_generated,
+        "family_generated_by_candidate": family_generated_by_candidate,
+    }
 
 
 def _current_layout_source_to_preview_id(aisles: list[dict[str, object]]) -> dict[str, str]:

@@ -1,0 +1,144 @@
+{
+  "$schema": "../../../schema/openparkcad-input.schema.json",
+  "version": "0.3",
+  "name": "representative tight rear court vehicle rejection",
+  "units": "m",
+  "standards": {
+    "jurisdiction": "unspecified",
+    "standard_profile": "project-policy-only",
+    "strictness": "conservative"
+  },
+  "site": {
+    "boundary": {
+      "type": "polygon",
+      "points": [[0, 0], [42, 0], [42, 25], [38, 25], [38, 32], [8, 32], [8, 29], [0, 29]]
+    },
+    "obstacles": [
+      {
+        "id": "rear-service-core",
+        "type": "building",
+        "geometry": {
+          "type": "polygon",
+          "points": [[31, 20], [37, 20], [37, 28], [31, 28]]
+        },
+        "clearance": 0.5,
+        "affects": ["stall", "aisle", "swept_path"],
+        "authority": "project_policy",
+        "priority": "hard"
+      }
+    ],
+    "reserved_areas": []
+  },
+  "site_features": [
+    {
+      "id": "neck-column",
+      "type": "column",
+      "geometry": {"type": "circle", "center": [9.5, 22.5], "radius": 0.45},
+      "clearance": 0.4,
+      "affects": ["vehicle_clearance", "stall_access"],
+      "authority": "project_policy",
+      "priority": "hard"
+    }
+  ],
+  "entrances": [
+    {
+      "id": "south-offset-gate",
+      "mode": "shared",
+      "center": [21, 0],
+      "width": 6.0,
+      "heading_degrees": 90,
+      "allowed_movements": ["enter", "exit"]
+    }
+  ],
+  "pedestrian_and_emergency": {
+    "pedestrian_routes": [],
+    "fire_lanes": [],
+    "emergency_access_required": false
+  },
+  "vehicles": {
+    "design_vehicle": {
+      "id": "long-wheelbase-service-vehicle",
+      "length": 6.2,
+      "width": 2.15,
+      "wheelbase": 3.7,
+      "min_turning_radius": 7.2,
+      "turning_radius_reference": "outer_front_wheel",
+      "track_width": 1.85,
+      "front_overhang": 1.4,
+      "rear_overhang": 1.1,
+      "swept_path_margin": 0.3,
+      "max_reverse_distance": 7.0
+    }
+  },
+  "parking": {
+    "stall_types": [
+      {
+        "id": "standard-90",
+        "family": "perpendicular",
+        "width": 2.7,
+        "length": 5.6,
+        "allowed_angles": [90],
+        "drive_over": false,
+        "access_sides": ["front"],
+        "enabled": true
+      }
+    ],
+    "quotas": {"accessible_min": 0, "ev_min": 0}
+  },
+  "aisles": {
+    "selection_mode": "fixed",
+    "fixed_class": "court-two-way",
+    "classes": [
+      {
+        "id": "court-two-way",
+        "width": 5.4,
+        "capacity": "two_vehicle",
+        "directionality": "two_way",
+        "centerline_crossing": "forbidden",
+        "enabled": true
+      }
+    ]
+  },
+  "constraints": {
+    "authority": "project_policy",
+    "setbacks": {"site_boundary": 0.25, "obstacle": 0.5},
+    "circulation": {
+      "require_all_stalls_reachable": true,
+      "require_exit_path": true,
+      "allow_dead_end_aisles": false,
+      "allow_narrow_two_way": false
+    },
+    "maneuvering": {
+      "require_turning_radius_check": true,
+      "require_swept_path_check": true,
+      "max_reverse_distance": 7.0
+    }
+  },
+  "optimization": {
+    "objective": "conservative",
+    "heading_deltas_degrees": [0],
+    "entrance_offsets": [0],
+    "branch_start_positions": [18],
+    "branch_sides": ["left"],
+    "max_branches": 1,
+    "enable_connectors": false,
+    "promote_candidate_layout_preview": false
+  },
+  "diagnostics": {
+    "explain_rejections": true,
+    "export_debug_layers": true,
+    "include_unsupported_fields": true,
+    "report_constraint_status": true
+  },
+  "metadata": {
+    "fixture_provenance": "synthetic_representative_real_site_shaped",
+    "coordinate_system": "local metres",
+    "notes": "Deliberately tight vehicle case; not a survey or customer site."
+  },
+  "regression_expectations": {
+    "intended_outcome": "invalid",
+    "required_failure_categories_any_of": ["turning_radius", "swept_path", "reverse_distance"],
+    "proxy_only_pass_forbidden": true,
+    "boundary_non_rectangular": true
+  }
+}

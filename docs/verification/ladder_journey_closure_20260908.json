@@ -1,0 +1,94 @@
+{
+  "source": "synthetic",
+  "date": "2026-09-08",
+  "source_head": "d1b8458a62cf14a9871a4932b94112f8e8decd82",
+  "includes_working_tree_changes": true,
+  "source_sha256": {
+    "openparkcad/road_transitions.py": "a934a4b1ae0a5d49a1dff03e4424cae47ffa3a5a65c319ee6e600fe410c13b67",
+    "openparkcad/road_traversal.py": "fae135383e5c312e9cf25e6052af17d225cb05788fd307db6956819f7e59a52d",
+    "openparkcad/road_traversal_models.py": "3e3cd918be913bc7ffd6eaeeee28983f7531a104c5821fcf8dc52283d67a715f",
+    "openparkcad/topology_generators/parallel_ladder.py": "6c1de8fa7befa71dd5d60473d0445c9d4b49926321c47e3a84f83038008cd965",
+    "openparkcad/topology_generators/ladder_modules.py": "d2239627028c28f28ce82363f40b2abaab7faaddfb2f70261347a6fb9a130ba1",
+    "openparkcad/topology_generators/ladder_layout.py": "e1fda6e0a4cf2325d7c024a95b7fa66933e74fc7e6977e7847460565dd13738a",
+    "tests/fixtures/v0_5/parallel_ladder_traversable_site.json": "f7b8faf100159f553bd0f8dde6e6f6534e0d9a98c150bd36e317fb158956648c"
+  },
+  "example": "tests/fixtures/v0_5/parallel_ladder_traversable_site.json",
+  "generation_mode": "parallel_ladder",
+  "road": {
+    "status": "passed",
+    "valid": true,
+    "stall_count": 20,
+    "stall_coverage": 20,
+    "elapsed_seconds": 17.81219390000024,
+    "time_budget_seconds": 60.0,
+    "layout_identity": "d2cc04b75e5a0516242bd060b6b411a00daa4e8cec954ed2712384e5e02d1ea4",
+    "template_revision": "orthogonal-tangents-2"
+  },
+  "graph_valid": true,
+  "engineering_valid": true,
+  "report_review_identity_match": true,
+  "output_hashes_verified": [
+    "dxf",
+    "svg",
+    "report",
+    "review_bundle"
+  ],
+  "output_hashes": {
+    "dxf": {
+      "path": "output\\traversal-closure\\layout.dxf",
+      "sha256": "23f27f71d45a2886dfe26a616278acd3556bd3c1841aa3b62ae403033c777283"
+    },
+    "svg": {
+      "path": "output\\traversal-closure\\layout.svg",
+      "sha256": "a5ef15eb0006952d38464dbbe686c4e5da0554dc95ac62c1cae813df391cbed7"
+    },
+    "report": {
+      "path": "output\\traversal-closure\\official-report.json",
+      "sha256": "dfd68cd4ef263290c1285af1c70bc6bfe7ceede9229b29487c52b11573db7d76"
+    },
+    "review_bundle": {
+      "path": "output\\traversal-closure\\review.json",
+      "sha256": "8a1cc681073954d83b6ee6770cc76a8b2910306160ae27241137eee25bc8e136"
+    }
+  },
+  "human_review": "not_reviewed",
+  "field_effect_claimed": false,
+  "full_matrix_rerun": false,
+  "wheel": {
+    "build": "passed",
+    "isolated_install": true,
+    "python_isolated_mode": true,
+    "outside_repo_cwd": true,
+    "environment": "E:\\CACHEV~1\\Temp\\openparkcad-journey-8a38c90a410c4c0ebdc02c789eb7ac25",
+    "sha256": "5eaba52e59be95cecff5c19be39d75a260d5e83e7be028a99a6468aed59290e7",
+    "stall_count": 20,
+    "stall_coverage": 20,
+    "road_status": "passed",
+    "source_layout_identity_match": true
+  },
+  "validation": {
+    "ruff": "passed",
+    "full_regression": {
+      "passed": 528,
+      "failed": 1,
+      "elapsed_seconds": 635.58,
+      "failure": "test_official_manifest_lists_all_explicit_existing_inputs",
+      "resolution": "Moved new case to tests/fixtures/v0_5, keeping the frozen top-level example benchmark unchanged."
+    },
+    "final_targeted": {
+      "passed": 4,
+      "failed": 0,
+      "elapsed_seconds": 20.59,
+      "includes": [
+        "generated whole-layout closure",
+        "template revision identity",
+        "dense neighbor collision rejection",
+        "frozen benchmark manifest coverage"
+      ]
+    },
+    "distinct_tests_verified": 530,
+    "coverage_percent": 83.88,
+    "coverage_required_percent": 80,
+    "build": "sdist and wheel passed"
+  }
+}

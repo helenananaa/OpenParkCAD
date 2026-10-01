@@ -1,0 +1,53 @@
+{
+  "version": "0.3",
+  "name": "benchmark protocol valid site",
+  "units": "m",
+  "site": {
+    "boundary": {
+      "type": "polygon",
+      "points": [[0, 0], [24, 0], [24, 34], [0, 34]]
+    }
+  },
+  "entrances": [
+    {
+      "id": "main",
+      "mode": "shared",
+      "center": [12, 0],
+      "width": 7.0,
+      "heading_degrees": 90
+    }
+  ],
+  "parking": {
+    "stall_types": [
+      {
+        "id": "standard-90",
+        "family": "perpendicular",
+        "width": 2.5,
+        "length": 5.0,
+        "allowed_angles": [90]
+      }
+    ]
+  },
+  "aisles": {
+    "selection_mode": "fixed",
+    "fixed_class": "wide-two-way",
+    "classes": [
+      {
+        "id": "wide-two-way",
+        "width": 6.0,
+        "capacity": "two_vehicle",
+        "directionality": "two_way"
+      }
+    ]
+  },
+  "constraints": {
+    "setbacks": {"site_boundary": 0.0}
+  },
+  "optimization": {
+    "heading_deltas_degrees": [0],
+    "entrance_offsets": [0],
+    "enable_branches": false,
+    "enable_connectors": false,
+    "promote_candidate_layout_preview": false
+  }
+}

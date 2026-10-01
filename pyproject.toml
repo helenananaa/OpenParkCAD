@@ -1,6 +1,6 @@
 [project]
 name = "openparkcad"
-version = "0.2.0"
+version = "0.3.0"
 description = "Minimal Python parking layout generator for irregular lots."
 readme = "README.md"
 license = "MIT"
@@ -25,6 +25,7 @@ optimizer = [
 dev = [
   "build>=1.2",
   "coverage[toml]>=7.6",
+  "jsonschema>=4.23",
   "pytest>=8.0",
   "pytest-cov>=5.0",
   "ruff>=0.6",
@@ -41,6 +42,19 @@ build-backend = "setuptools.build_meta"
 [tool.setuptools.packages.find]
 include = ["openparkcad*"]
 exclude = ["examples*", "output*", "tests*"]
+
+[tool.setuptools.package-data]
+openparkcad = ["viewer_assets/*"]
+
+[tool.setuptools.data-files]
+"share/openparkcad/schema" = [
+  "schema/openparkcad-input.schema.json",
+  "schema/openparkcad-review.schema.json",
+  "schema/openparkcad-project.schema.json",
+  "schema/road-network.schema.json",
+]
+"share/openparkcad/fixtures/v0_3" = ["tests/fixtures/v0_3/*.json", "tests/fixtures/v0_3/README.md"]
+"share/doc/openparkcad" = ["CHANGELOG.md", "docs/v0.3_vehicle_and_constraints.md"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

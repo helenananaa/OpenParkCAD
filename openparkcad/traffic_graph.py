@@ -7,6 +7,7 @@ from typing import Any
 from shapely.geometry import LineString, Point as ShapelyPoint, Polygon as ShapelyPolygon
 
 from openparkcad.models import EntranceSpec, LayoutResult, ParkingAisle, Point, SiteSpec
+from openparkcad.phase1_support import aisle_directionality, one_way_allows_reverse_egress
 
 
 _AISLE_CONNECTION_TOLERANCE = 1e-7
@@ -63,7 +64,8 @@ def build_traffic_graph(layout: LayoutResult) -> TrafficGraph:
             )
         )
 
-    for aisle in layout.aisles:
+    circulation_aisles = [aisle for aisle in layout.aisles if not _is_non_circulation_aisle(aisle)]
+    for aisle in circulation_aisles:
         nodes.append(
             TrafficNode(
                 id=_aisle_node_id(aisle.id),
@@ -73,36 +75,39 @@ def build_traffic_graph(layout: LayoutResult) -> TrafficGraph:
             )
         )
 
-    for aisle in layout.aisles:
+    for aisle in circulation_aisles:
         aisle_node_id = _aisle_node_id(aisle.id)
+        aisle_dir = _aisle_directionality(aisle, layout.site)
         if aisle.connected_to_entrance_id:
             entrance = entrances_by_id.get(aisle.connected_to_entrance_id)
             if entrance is None or _entrance_touches_aisle(layout.site, entrance, aisle):
-                edges.append(_entrance_edge(layout.site, aisle, aisle_node_id))
+                edges.extend(_entrance_edges(layout.site, aisle, aisle_node_id, aisle_dir))
         if aisle.parent_aisle_id:
             parent = aisles_by_id.get(aisle.parent_aisle_id)
             if parent is None or _aisles_touch(aisle, parent):
-                edges.append(
-                    TrafficEdge(
-                        id=f"E-PARENT-{aisle.parent_aisle_id}-{aisle.id}",
+                edges.extend(
+                    _directed_aisle_edges(
+                        edge_id_prefix=f"E-PARENT-{aisle.parent_aisle_id}-{aisle.id}",
                         from_node_id=_aisle_node_id(aisle.parent_aisle_id),
                         to_node_id=aisle_node_id,
-                        directionality=_layout_aisle_directionality(layout.site),
+                        directionality=aisle_dir,
                         role="aisle_connection",
                         aisle_id=aisle.id,
+                        allow_reverse=one_way_allows_reverse_egress(layout.site),
                     )
                 )
         for connected_aisle_id in aisle.connected_aisle_ids:
             connected = aisles_by_id.get(connected_aisle_id)
             if connected is None or _aisles_touch(aisle, connected):
-                edges.append(
-                    TrafficEdge(
-                        id=f"E-CONNECTOR-{aisle.id}-{connected_aisle_id}",
+                edges.extend(
+                    _directed_aisle_edges(
+                        edge_id_prefix=f"E-CONNECTOR-{aisle.id}-{connected_aisle_id}",
                         from_node_id=aisle_node_id,
                         to_node_id=_aisle_node_id(connected_aisle_id),
-                        directionality=_layout_aisle_directionality(layout.site),
+                        directionality=aisle_dir,
                         role="aisle_connection",
                         aisle_id=aisle.id,
+                        allow_reverse=one_way_allows_reverse_egress(layout.site),
                     )
                 )
 
@@ -123,6 +128,9 @@ def build_traffic_graph(layout: LayoutResult) -> TrafficGraph:
 def validate_traffic_graph(graph: TrafficGraph, layout: LayoutResult) -> dict[str, Any]:
     node_ids = {node.id for node in graph.nodes}
     aisle_ids = {aisle.id for aisle in layout.aisles}
+    circulation_aisle_ids = {
+        aisle.id for aisle in layout.aisles if not _is_non_circulation_aisle(aisle)
+    }
     entrance_ids = {entrance.id for entrance in layout.site.entrances}
     entry_nodes = {_entrance_node_id(entrance.id) for entrance in layout.site.entrances if _allows_entry(entrance)}
     exit_nodes = {_entrance_node_id(entrance.id) for entrance in layout.site.entrances if _allows_exit(entrance)}
@@ -152,9 +160,9 @@ def validate_traffic_graph(graph: TrafficGraph, layout: LayoutResult) -> dict[st
     reachable_aisles = sorted(
         aisle.id
         for aisle in layout.aisles
-        if _aisle_node_id(aisle.id) in reachable_from_entries
+        if not _is_non_circulation_aisle(aisle) and _aisle_node_id(aisle.id) in reachable_from_entries
     )
-    unreachable_aisles = sorted(aisle_ids - set(reachable_aisles))
+    unreachable_aisles = sorted(circulation_aisle_ids - set(reachable_aisles))
     unreachable_stalls = sorted(
         access.stall_id
         for access in graph.stall_access
@@ -187,6 +195,8 @@ def validate_traffic_graph(graph: TrafficGraph, layout: LayoutResult) -> dict[st
     if any(item["status"] == "dead_end_without_turnaround" for item in dead_ends):
         errors.append("dead_end_without_turnaround")
 
+    layout_dir = _layout_aisle_directionality(layout.site)
+    reverse_egress = one_way_allows_reverse_egress(layout.site) if layout_dir == "one_way" else None
     return {
         "valid": not errors,
         "errors": errors,
@@ -205,6 +215,10 @@ def validate_traffic_graph(graph: TrafficGraph, layout: LayoutResult) -> dict[st
         "disconnected_aisle_connections": disconnected_aisle_connections,
         "disconnected_entrance_connections": disconnected_entrance_connections,
         "dead_ends": dead_ends,
+        "aisle_directionality": layout_dir,
+        "one_way_allows_reverse_egress": reverse_egress,
+        "one_way_edge_count": sum(1 for edge in graph.edges if edge.directionality == "one_way"),
+        "reverse_egress_edge_count": sum(1 for edge in graph.edges if edge.role == "reverse_egress"),
     }
 
 
@@ -238,29 +252,125 @@ def traffic_graph_summary(layout: LayoutResult) -> dict[str, Any]:
     }
 
 
-def _entrance_edge(site: SiteSpec, aisle: ParkingAisle, aisle_node_id: str) -> TrafficEdge:
+def _entrance_edges(
+    site: SiteSpec,
+    aisle: ParkingAisle,
+    aisle_node_id: str,
+    aisle_dir: str,
+) -> list[TrafficEdge]:
     entrance = next((item for item in site.entrances if item.id == aisle.connected_to_entrance_id), None)
+    entrance_node = _entrance_node_id(aisle.connected_to_entrance_id or "")
+    base_id = f"E-ENTRANCE-{aisle.connected_to_entrance_id}-{aisle.id}"
+
     if entrance and _allows_entry(entrance) and not _allows_exit(entrance):
-        from_node_id = _entrance_node_id(entrance.id)
-        to_node_id = aisle_node_id
-        directionality = "one_way"
-    elif entrance and _allows_exit(entrance) and not _allows_entry(entrance):
-        from_node_id = aisle_node_id
-        to_node_id = _entrance_node_id(entrance.id)
-        directionality = "one_way"
-    else:
-        from_node_id = _entrance_node_id(aisle.connected_to_entrance_id or "")
-        to_node_id = aisle_node_id
-        directionality = "two_way"
-    return TrafficEdge(
-        id=f"E-ENTRANCE-{aisle.connected_to_entrance_id}-{aisle.id}",
-        from_node_id=from_node_id,
-        to_node_id=to_node_id,
-        directionality=directionality,
-        role="entrance_connection",
-        aisle_id=aisle.id,
-        entrance_id=aisle.connected_to_entrance_id,
-    )
+        return [
+            TrafficEdge(
+                id=base_id,
+                from_node_id=entrance_node,
+                to_node_id=aisle_node_id,
+                directionality="one_way",
+                role="entrance_connection",
+                aisle_id=aisle.id,
+                entrance_id=aisle.connected_to_entrance_id,
+            )
+        ]
+    if entrance and _allows_exit(entrance) and not _allows_entry(entrance):
+        return [
+            TrafficEdge(
+                id=base_id,
+                from_node_id=aisle_node_id,
+                to_node_id=entrance_node,
+                directionality="one_way",
+                role="entrance_connection",
+                aisle_id=aisle.id,
+                entrance_id=aisle.connected_to_entrance_id,
+            )
+        ]
+
+    # Shared entrance: two-way, or one-way enter with optional reverse egress.
+    if aisle_dir == "one_way":
+        edges = [
+            TrafficEdge(
+                id=f"{base_id}-ENTER",
+                from_node_id=entrance_node,
+                to_node_id=aisle_node_id,
+                directionality="one_way",
+                role="entrance_connection",
+                aisle_id=aisle.id,
+                entrance_id=aisle.connected_to_entrance_id,
+            )
+        ]
+        if one_way_allows_reverse_egress(site):
+            edges.append(
+                TrafficEdge(
+                    id=f"{base_id}-EGRESS",
+                    from_node_id=aisle_node_id,
+                    to_node_id=entrance_node,
+                    directionality="one_way",
+                    role="reverse_egress",
+                    aisle_id=aisle.id,
+                    entrance_id=aisle.connected_to_entrance_id,
+                )
+            )
+        return edges
+
+    return [
+        TrafficEdge(
+            id=base_id,
+            from_node_id=entrance_node,
+            to_node_id=aisle_node_id,
+            directionality="two_way",
+            role="entrance_connection",
+            aisle_id=aisle.id,
+            entrance_id=aisle.connected_to_entrance_id,
+        )
+    ]
+
+
+def _directed_aisle_edges(
+    *,
+    edge_id_prefix: str,
+    from_node_id: str,
+    to_node_id: str,
+    directionality: str,
+    role: str,
+    aisle_id: str,
+    allow_reverse: bool,
+) -> list[TrafficEdge]:
+    """Emit forward aisle edges, plus explicit reverse-egress arcs for one-way modules."""
+    if directionality != "one_way":
+        return [
+            TrafficEdge(
+                id=edge_id_prefix,
+                from_node_id=from_node_id,
+                to_node_id=to_node_id,
+                directionality="two_way",
+                role=role,
+                aisle_id=aisle_id,
+            )
+        ]
+    edges = [
+        TrafficEdge(
+            id=edge_id_prefix,
+            from_node_id=from_node_id,
+            to_node_id=to_node_id,
+            directionality="one_way",
+            role=role,
+            aisle_id=aisle_id,
+        )
+    ]
+    if allow_reverse:
+        edges.append(
+            TrafficEdge(
+                id=f"{edge_id_prefix}-EGRESS",
+                from_node_id=to_node_id,
+                to_node_id=from_node_id,
+                directionality="one_way",
+                role="reverse_egress",
+                aisle_id=aisle_id,
+            )
+        )
+    return edges
 
 
 def _reachable_nodes(graph: TrafficGraph, starts: set[str], reverse: bool) -> set[str]:
@@ -296,6 +406,8 @@ def _dead_ends(graph: TrafficGraph, layout: LayoutResult) -> list[dict[str, Any]
 
     items = []
     for aisle in layout.aisles:
+        if _is_non_circulation_aisle(aisle):
+            continue
         node_id = _aisle_node_id(aisle.id)
         if aisle.role == "turnaround":
             items.append(
@@ -325,6 +437,8 @@ def _disconnected_aisle_connections(layout: LayoutResult) -> list[dict[str, Any]
     aisles_by_id = {aisle.id: aisle for aisle in layout.aisles}
     disconnected: list[dict[str, Any]] = []
     for aisle in layout.aisles:
+        if _is_non_circulation_aisle(aisle):
+            continue
         declarations = []
         if aisle.parent_aisle_id:
             declarations.append(("parent", aisle.parent_aisle_id))
@@ -420,14 +534,18 @@ def _allows_dead_end_aisles(site: SiteSpec) -> bool:
 
 
 def _layout_aisle_directionality(site: SiteSpec) -> str:
-    if site.fixed_aisle_class:
-        for aisle_class in site.aisle_classes:
-            if aisle_class.id == site.fixed_aisle_class:
-                return aisle_class.directionality
-    for aisle_class in site.aisle_classes:
-        if aisle_class.enabled:
-            return aisle_class.directionality
-    return "two_way"
+    return aisle_directionality(site)
+
+
+def _aisle_directionality(aisle: ParkingAisle, site: SiteSpec) -> str:
+    if aisle.directionality in {"one_way", "two_way"}:
+        return aisle.directionality
+    return _layout_aisle_directionality(site)
+
+
+def _is_non_circulation_aisle(aisle: ParkingAisle) -> bool:
+    """Shoulders / widenings that are drawn but not independent graph nodes."""
+    return aisle.role in {"passing_bay"}
 
 
 def _node_kind_for_aisle(aisle: ParkingAisle) -> str:
@@ -437,8 +555,14 @@ def _node_kind_for_aisle(aisle: ParkingAisle) -> str:
         return "branch_aisle"
     if aisle.role == "connector":
         return "connector_aisle"
+    if aisle.role == "exit":
+        return "exit_aisle"
+    if aisle.role == "jog":
+        return "jog_aisle"
     if aisle.role == "main":
         return "main_aisle"
+    if aisle.role == "passing_bay":
+        return "passing_bay"
     return "aisle"
 
 

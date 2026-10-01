@@ -3,9 +3,10 @@ from __future__ import annotations
 from shapely.geometry import Polygon as ShapelyPolygon
 from shapely.ops import unary_union
 
-from openparkcad.layout_geometry import available_area
+from openparkcad.candidate_catalog import NETWORK_PREVIEW_VERSION, SPINE_AISLE_ROLES
+from openparkcad.layout_geometry import available_area, polygon_points
 from openparkcad.models import CandidateObject, LayoutResult, ParkingAisle
-from openparkcad.layout_geometry import polygon_points
+from openparkcad.phase1_support import aisle_directionality
 from openparkcad.traffic_graph import build_traffic_graph, traffic_graph_summary, validate_traffic_graph
 
 
@@ -21,13 +22,15 @@ def build_candidate_network_preview(layout: LayoutResult) -> dict[str, object]:
     shadow_aisles = [
         object_by_id[item]
         for item in selected_shadow_ids
-        if item in object_by_id and object_by_id[item].geometry is not None
+        if item in object_by_id
+        and object_by_id[item].kind == "aisle_skeleton"
+        and object_by_id[item].geometry is not None
     ]
     preview_objects = [*base_aisles, *shadow_aisles]
     preview_aisles = _preview_aisles(preview_objects)
     connector_summary = _connector_summary(preview_objects, preview_aisles)
     return {
-        "version": "phase4c-4b",
+        "version": NETWORK_PREVIEW_VERSION,
         "status": "preview_only",
         "source_selection_version": layout.candidate_selection.get("version"),
         "base_aisle_count": len(base_aisles),
@@ -45,7 +48,7 @@ def build_candidate_network_preview(layout: LayoutResult) -> dict[str, object]:
         "validation": _validate_preview(layout, preview_aisles, preview_objects),
         "aisles": preview_aisles,
         "notes": [
-            "Preview includes the current selected main/turnaround aisles plus shadow-selected branch/connector candidates.",
+            "Preview includes official spine aisles (main/jog/exit/passing_bay and spine turnarounds) plus shadow-selected branch/connector candidates.",
             "Unconnected shadow branch candidates are expanded into branch aisle plus end-turnaround preview aisles.",
             "Connector-connected shadow branches suppress their generated end turnarounds in the preview network.",
             "Preview is report-only and does not replace the generated layout, stalls, DXF, or SVG yet.",
@@ -110,11 +113,22 @@ def _preview_turnaround_aisle(candidate: CandidateObject, index: int) -> dict[st
 
 
 def _base_preview_aisle(candidate: CandidateObject) -> bool:
-    if candidate.role == "main":
+    """Selected official aisles shown as the network-preview base layer.
+
+    Branch/connector remain shadow-selectable. Generator branch turnarounds
+    stay out of the base so dead-end caps come only from selected skeletons.
+    """
+    if candidate.role in SPINE_AISLE_ROLES:
         return True
     if candidate.role != "turnaround":
         return False
-    return candidate.metadata.get("parent_aisle_id") == "A-MAIN"
+    parent = str(candidate.metadata.get("parent_aisle_id") or "")
+    source = str(candidate.metadata.get("source_id") or "")
+    return not _branch_owned_id(parent) and not _branch_owned_id(source)
+
+
+def _branch_owned_id(raw: str) -> bool:
+    return raw.startswith("A-BRANCH") or "-BRANCH-" in raw
 
 
 def _preview_metadata(candidate: CandidateObject) -> dict[str, object]:
@@ -345,7 +359,7 @@ def _validate_preview(
     if not traffic_validation["valid"]:
         errors.append("preview_traffic_graph_invalid")
     return {
-        "version": "phase4c-4b",
+        "version": NETWORK_PREVIEW_VERSION,
         "status": "preview_only",
         "valid": not errors,
         "errors": errors,
@@ -416,6 +430,9 @@ def _parking_aisle_from_preview(
     if role == "main":
         connected_to_entrance_id = str(metadata.get("connected_to_entrance_id") or layout.main_entrance_id or "")
     angle = metadata.get("angle_degrees", layout.selected_heading_degrees or layout.selected_angle_degrees)
+    directionality = metadata.get("directionality")
+    if not isinstance(directionality, str):
+        directionality = aisle_directionality(layout.site)
     return ParkingAisle(
         id=str(preview["id"]),
         polygon=[(float(x), float(y)) for x, y in preview["geometry"]],
@@ -424,6 +441,7 @@ def _parking_aisle_from_preview(
         connected_to_entrance_id=connected_to_entrance_id or None,
         parent_aisle_id=parent_aisle_id,
         connected_aisle_ids=connected_aisle_ids,
+        directionality=directionality if directionality in {"one_way", "two_way"} else "two_way",
     )
 
 

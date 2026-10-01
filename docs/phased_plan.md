@@ -4,6 +4,13 @@ This document turns the algorithm discussion into a step-by-step project plan.
 It is intentionally conservative: each phase should produce something that can
 be inspected, tested, and explained before the next layer is added.
 
+For the next development iteration, use the
+[next five stages execution plan](next_stages_execution_plan.md), starting with
+road-level vehicle traversal. It lists planned implementation steps, contracts,
+commands, and acceptance criteria. E0–E9 of the
+[v0.4 multi-spine plan](v0_4_multi_spine_execution_plan.md) are implemented;
+the historical implementation slices below provide context.
+
 ## Guiding Rule
 
 Do not optimize parking count before the layout is provably usable.
@@ -517,12 +524,10 @@ Current rules:
 - Angled branch stalls are generated on both sides of the branch aisle where
   they fit.
 - Angled branch stalls are checked by the active `angled_proxy` maneuver rule.
-- Same-side connector aisles remain disabled for angled active stall families.
+- Same-side, opposite-cross, and end-loop connectors place official stalls for
+  perpendicular, parallel, and angled active families.
 - The report records `connectors_not_supported_for_stall_family` when connector
-  trials are skipped for angled stalls.
-
-This still does not support angled connector-side stalls, mixed
-angled/perpendicular layouts, or parallel/T-end generation.
+  trials are skipped for unsupported families such as T-end.
 
 ### Phase 3E: Stall Type Candidate Comparison
 
@@ -1398,6 +1403,182 @@ Current rules:
 - This is still not a swept-path or right-of-way simulation. It identifies the
   junctions where a later vehicle movement model needs to reason about yielding
   space, refuge placement, and approach priority.
+
+### Phase 5R: Pedestrian-conflict proximity proxy
+
+Current rules:
+
+- Pedestrian and accessible route geometries (hard or advisory) are watched.
+- Stalls within `optimization.operational_pedestrian_conflict_clearance`
+  (default 0, meaning contact only) are reported as `stall_near_pedestrian_route`
+  or `stall_touches_pedestrian_route`.
+- Aisles that intersect a walkway are `aisle_crosses_pedestrian_route`;
+  near misses use the same clearance as `aisle_near_pedestrian_route`.
+- `optimization.operational_pedestrian_conflict_risk` (default 0) is added per
+  issue, so existing scores stay unchanged unless the knob is set.
+- This is a geometry proxy, not pedestrian delay, sight-distance, or crossing
+  certification.
+
+## Phase 6: Route usability
+
+Protected pedestrian and emergency geometry is not useful if the stalls or
+gates it was declared for cannot reach it.
+
+### Phase 6A: Accessible stall-to-route contact
+
+Current rules:
+
+- A positive `parking.quotas.accessible_min` already requires hard accessible
+  route geometry at definition time.
+- Classified accessible stalls on the official layout must geometrically reach
+  that route within `constraints.accessible_route_touch_tolerance` (default
+  1.5 m).
+- Failure reason: `accessible_stall_does_not_reach_accessible_route`.
+- This is project-policy geometric contact, not slope, width, or ADA
+  certification.
+
+### Phase 6B: Emergency route-to-entrance contact
+
+Current rules:
+
+- `emergency_access_required` already requires hard fire/access geometry.
+- At least one hard fire/access/emergency route must geometrically reach an
+  entrance gate within `constraints.emergency_route_touch_tolerance` (default
+  1.0 m). Extra unconnected fire geometry is reported, not a hard fail.
+- Failure reason: `emergency_route_does_not_reach_entrance`.
+- This is not a fire-apparatus swept path or hydrant-layout check.
+
+### Phase 6C: EV stall-to-charger contact
+
+Current rules:
+
+- A positive `parking.quotas.ev_min` still counts classified or
+  charging-equipped stall types even when no charger geometry is placed.
+- When that quota is positive **and** hard `charging_post` / `ev_charger` /
+  `charger` site features have geometry, classified EV stalls must
+  geometrically reach a charger within
+  `constraints.ev_charger_touch_tolerance` (default 2.0 m).
+- Failure reason: `ev_stall_does_not_reach_charger`.
+- This is project-policy geometric contact, not circuit design, cable length,
+  or equipment-placement certification.
+
+### Phase 6D: Accessible-route continuity and connects destinations
+
+Current rules:
+
+- When `accessible_min` is positive, hard accessible-route pieces that classified
+  stalls actually touch must form one contact network within the same
+  `accessible_route_touch_tolerance`.
+- `accessible_routes.connects` tokens other than reserved stall aliases must
+  name existing site-feature, reserved-area, entrance, or route geometry.
+  The stall-serving network must reach those destinations.
+- Unknown connect ids fail closed (`accessible_route_connects_target_missing`).
+- Failure reasons also include `accessible_route_network_disconnected` and
+  `accessible_route_does_not_reach_destination`.
+- This is not slope, width, or an ADA accessible-route certification.
+
+### Phase 6E: Place classified stalls on the contact network
+
+Current rules:
+
+- After maneuver filtering, official and preview layouts drop accessible
+  stalls that do not reach a hard accessible route when `accessible_min` is
+  positive, and EV stalls that do not reach a placed charger when `ev_min` is
+  positive and charger geometry exists.
+- Stall-module shadow scores reject those unreachable classified chunks
+  (`module_does_not_reach_accessible_route` /
+  `module_does_not_reach_charger`) and add `weights.accessible_contact` /
+  `weights.ev_contact` (default 100 per stall) to reachable ones so they can
+  beat denser unmarked modules.
+- This still does not synthesize a mixed accessible/standard strip from
+  scratch; it filters and prefers among generated candidates.
+
+### Phase 6F: Accessible-route min_width and max_slope
+
+Current rules:
+
+- Declared `min_width` on a hard accessible route is compared to the
+  `polyline_buffer` `width`. Too-narrow routes fail
+  `accessible_route_narrower_than_min_width`. Other geometry types fail
+  `accessible_route_width_not_auditable_for_geometry`.
+- Declared `max_slope` fail-closes with
+  `accessible_route_slope_check_unsupported` because the input model has no
+  elevation. The kernel does not invent a flat site.
+- This is not ADA, ISA, or a surveyed longitudinal-grade certificate.
+
+### Phase 6G: Retarget official stalls onto the contact band
+
+Current rules:
+
+- When `accessible_min` / `ev_min` is positive, a matching classified stall
+  type exists, and contact geometry exists, official and preview layouts may
+  relabel or resize same-family stalls that already reach the route/charger
+  so the quota can be met without switching the whole aisle to that type.
+- Replacement polygons must stay in stall-usable area and not overlap aisles
+  or other stalls. Contact filtering still drops classified stalls that miss.
+- This is not a new accessible-aisle synthesizer.
+
+### Phase 6H: Clear same-side neighbors for wider classified stalls
+
+Current rules:
+
+- If a retargeted accessible/EV stall is wider or longer than the stall it
+  replaces, overlapping neighbors on the same aisle side may be dropped so
+  the classified stall can fit.
+- Neighbors that already carry the needed classification, or stalls on another
+  aisle/side, are not dropped. Aisle overlap still rejects the replacement.
+- This still does not synthesize a dedicated accessible module from empty
+  pavement.
+
+### Phase 6I: Pack a contact-band strip of classified stalls
+
+Current rules:
+
+- When a classified stall is a different size and a contiguous same-side
+  contact run has enough frontage for at least two classified bays, the
+  retargeter packs that run as a strip instead of converting one stall at a
+  time.
+- Same-size retarget still relabels; a single wider stall still uses the
+  6H neighbor drop. Opposite-side, already-classified, and aisle-overlapping
+  geometry still reject the pack.
+- This still does not synthesize a dedicated accessible module from empty
+  pavement, and it is not an ADA stall-module library.
+
+### Phase 6J: Fill empty contact-band pavement on an existing aisle
+
+Current rules:
+
+- After pack/replace cannot meet the quota, perpendicular classified bays may
+  be placed on empty stall-usable pavement along an existing main/branch/jog
+  aisle side that already reaches the route or charger.
+- New bays must touch that aisle, stay off other aisles and existing stalls,
+  and still reach the contact geometry. No new aisle is invented. Parallel
+  empty-fill is Phase 6K; angled empty-fill is Phase 6L.
+- This is not a dedicated accessible-aisle synthesizer, ADA stall library,
+  or multi-gate network rewrite.
+
+### Phase 6K: Parallel empty-fill on the contact band
+
+Current rules:
+
+- When the classified stall family is parallel, empty-fill uses length along
+  the existing aisle and width as lateral depth, the same box as official
+  parallel generation.
+- A side that already has a different stall family is not mixed with parallel
+  bays. Angled empty-fill is Phase 6L. No new aisle is invented.
+- This is not on-street parallel-parking design or an ADA stall library.
+
+### Phase 6L: Angled empty-fill on the contact band
+
+Current rules:
+
+- When the classified stall family is angled, empty-fill uses the same
+  parallelogram as official angled generation: front pitch
+  `width / sin(theta)` along the existing aisle, sheared by
+  `length * cos(theta)` with lateral depth `length * sin(theta)`.
+- The stall angle is aisle heading ± the acute module angle (left +, right −).
+  Mixed-family sides are not planted. No new aisle is invented.
+- This is not an angled-stall optimizer or ADA stall library.
 
 ## Implementation Principle
 

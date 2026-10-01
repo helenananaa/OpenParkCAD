@@ -14,6 +14,8 @@ def test_promoted_layout_rebuilds_official_snapshot_and_provenance():
 
     official_aisle_ids = {aisle.id for aisle in layout.aisles}
     official_stall_ids = {stall.id for stall in layout.stalls}
+    assert all(stall_id.startswith("P-") for stall_id in official_stall_ids)
+    assert all(not stall_id.startswith("PL-STALL-") for stall_id in official_stall_ids)
     selected_aisle_sources = {
         str(item.metadata.get("source_id"))
         for item in layout.candidate_objects
@@ -32,6 +34,8 @@ def test_promoted_layout_rebuilds_official_snapshot_and_provenance():
     assert layout.candidate_layout_preview["validation"]["status"] == "official"
     assert layout.candidate_layout_preview["validation"]["traffic_graph"] == layout.graph_validation
     assert layout.candidate_layout_preview["validation"]["maneuver_validation"] == layout.maneuver_validation
+    assert layout.candidate_layout_preview["validation"]["site_constraint_validation"] == layout.site_constraint_validation
+    assert layout.candidate_layout_preview["validation"]["engineering_validation"] == layout.engineering_validation
     assert layout.candidate_layout_preview["validation"]["operational_quality"] == layout.operational_quality
     assert layout.candidate_layout_preview["score"] == layout.score
 
@@ -64,4 +68,5 @@ def test_empty_candidate_preview_cannot_be_promoted():
     assert layout.candidate_layout_promotion["blockers"] == [
         "preview_layout_has_no_aisles",
         "preview_layout_has_no_stalls",
+        "preview_validation_failed",
     ]

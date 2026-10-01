@@ -1,0 +1,71 @@
+{
+  "version": "openparkcad-v0.5-n0-baseline-1",
+  "date": "2026-09-04",
+  "run_id": "20260904-161712",
+  "evidence_dir": "output/verification/v0_5/20260904-161712-n0-baseline",
+  "source_identity": {
+    "commit": "9f33503d28eb3d06988ceff17069a3dcce0337f3",
+    "branch": "codex/v0.3-vehicle-validity",
+    "ahead_of_origin": 7,
+    "dirty": true,
+    "untracked": [
+      "docs/v0_5_road_skeleton_parallel_ladder_execution_plan.md"
+    ]
+  },
+  "python": "Python 3.12.7",
+  "package_version": "0.3.0",
+  "exit_codes": {
+    "ruff": 0,
+    "pytest": 0,
+    "build": 0,
+    "legacy_solve": 0,
+    "multi_solve": 0
+  },
+  "pytest": {
+    "passed": 448,
+    "elapsed_seconds": 1119.11,
+    "coverage_percent": 83.59,
+    "fail_under": 80
+  },
+  "build": {
+    "sdist": "openparkcad-0.3.0.tar.gz",
+    "wheel": "openparkcad-0.3.0-py3-none-any.whl"
+  },
+  "official": {
+    "phase0_site": {
+      "input": "examples/phase0_site.json",
+      "stall_count": 83,
+      "aisle_ids": ["A-MAIN", "A-TURNAROUND", "A-BRANCH-001", "A-BRANCH-002", "A-CONNECTOR-001"],
+      "score_total": 7512.800384521484,
+      "engineering_valid": true,
+      "engineering_decision": "pass",
+      "generation_mode": "candidate_layout_promoted",
+      "selector_backend": "greedy",
+      "layout_search_mode": "legacy",
+      "road_traversal_status": "not_requested"
+    },
+    "multi_spine_comparison_site": {
+      "input": "examples/multi_spine_comparison_site.json",
+      "stall_count": 67,
+      "aisle_ids": ["A-MAIN", "A-TURNAROUND", "A-BRANCH-001", "A-BRANCH-001-TURNAROUND"],
+      "score_total": 6699.5,
+      "engineering_valid": true,
+      "engineering_decision": "pass",
+      "generation_mode": "candidate_layout_promoted",
+      "selector_backend": "cpsat",
+      "layout_search_mode": "multi_spine",
+      "official_candidate_id": "cand-4eff97cf0c38b1ea",
+      "road_traversal_status": "not_requested"
+    }
+  },
+  "performance_ceilings_frozen": {
+    "single_case_hard_timeout_seconds": 180.0,
+    "refinement_budget_seconds_default": 20.0,
+    "max_skeletons_default": 16,
+    "max_full_evaluations_default": 8,
+    "n0_legacy_solve_seconds": 2,
+    "n0_multi_solve_seconds": 3,
+    "n0_pytest_seconds": 1119.11,
+    "note": "Frozen from N0 before later stages; N9 must not relax these after seeing numbers."
+  }
+}

@@ -1,23 +1,19 @@
 from __future__ import annotations
 
+import math
+
 from shapely import affinity
 from shapely.geometry import GeometryCollection, MultiPolygon, Polygon as ShapelyPolygon, box
 from shapely.ops import unary_union
 
 from openparkcad.models import EntranceSpec, Polygon, SiteSpec
+from openparkcad.site_constraints import ConstraintPurpose, site_usable_area
 
 
-def available_area(site: SiteSpec) -> ShapelyPolygon:
-    boundary = ShapelyPolygon(site.boundary)
-    if not boundary.is_valid:
-        boundary = boundary.buffer(0)
+def available_area(site: SiteSpec, purpose: ConstraintPurpose = "all"):
+    """Return site geometry after the active hard exclusions for ``purpose``."""
 
-    usable = boundary.buffer(-site.margin, join_style="mitre")
-
-    obstacles = [ShapelyPolygon(item) for item in site.obstacles]
-    if not obstacles:
-        return usable
-    return usable.difference(unary_union(obstacles))
+    return site_usable_area(site, purpose)
 
 
 def main_aisle_with_turnaround(site: SiteSpec, entrance: EntranceSpec, heading_degrees: float, start: float, length: float):
@@ -51,6 +47,38 @@ def turnaround_polygon(site: SiteSpec, entrance: EntranceSpec, heading_degrees: 
         entrance,
         heading_degrees,
     )
+
+
+def entrance_throat_polygon(
+    site: SiteSpec,
+    real_entrance: EntranceSpec,
+    geom_entrance: EntranceSpec,
+    heading_degrees: float,
+    start: float,
+):
+    """Connect a laterally shifted aisle frame back to the real entrance center.
+
+    When the geometry frame is unshifted, return an empty polygon so the main
+    aisle body alone owns the entrance connection.
+    """
+    if (
+        abs(real_entrance.center[0] - geom_entrance.center[0]) <= 1e-9
+        and abs(real_entrance.center[1] - geom_entrance.center[1]) <= 1e-9
+    ):
+        return ShapelyPolygon()
+
+    # Build throat in the real-entrance local frame spanning toward the shifted frame origin.
+    dx = geom_entrance.center[0] - real_entrance.center[0]
+    dy = geom_entrance.center[1] - real_entrance.center[1]
+    heading = math.radians(heading_degrees)
+    # local u along heading, v perpendicular
+    local_u = dx * math.cos(heading) + dy * math.sin(heading)
+    local_v = -dx * math.sin(heading) + dy * math.cos(heading)
+    u_min = max(start, 0.0)
+    u_max = max(u_min + site.aisle_width, local_u + site.aisle_width / 2, start + site.aisle_width)
+    v_min = min(0.0, local_v) - site.aisle_width / 2
+    v_max = max(0.0, local_v) + site.aisle_width / 2
+    return local_box_to_world(u_min, v_min, u_max, v_max, real_entrance, heading_degrees)
 
 
 def branch_aisle_polygon(site: SiteSpec, entrance: EntranceSpec, heading_degrees: float, branch_u: float, side: str, length: float):

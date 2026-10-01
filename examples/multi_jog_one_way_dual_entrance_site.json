@@ -1,0 +1,149 @@
+{
+  "version": "0.3",
+  "name": "multi-jog one-way dual entrance strict",
+  "units": "m",
+  "standards": {
+    "jurisdiction": "CN",
+    "standard_profile": "custom",
+    "strictness": "conservative",
+    "notes": "Strict one-way without reverse egress; staggered obstacles force multi-jog; entry/exit gates complete the path."
+  },
+  "site": {
+    "boundary": {
+      "type": "polygon",
+      "points": [[0, 0], [110, 0], [110, 110], [0, 110]]
+    },
+    "obstacles": [
+      {
+        "id": "front-block",
+        "type": "building",
+        "geometry": {
+          "type": "polygon",
+          "points": [[40, 16], [70, 16], [70, 30], [40, 30]]
+        },
+        "clearance": 0.5
+      },
+      {
+        "id": "right-block",
+        "type": "building",
+        "geometry": {
+          "type": "polygon",
+          "points": [[62, 50], [95, 50], [95, 68], [62, 68]]
+        },
+        "clearance": 0.5
+      },
+      {
+        "id": "left-block",
+        "type": "building",
+        "geometry": {
+          "type": "polygon",
+          "points": [[15, 50], [48, 50], [48, 68], [15, 68]]
+        },
+        "clearance": 0.5
+      }
+    ],
+    "reserved_areas": []
+  },
+  "site_features": [],
+  "entrances": [
+    {
+      "id": "entry-gate",
+      "mode": "entry_only",
+      "center": [55, 0],
+      "width": 6.0,
+      "heading_degrees": 90,
+      "allowed_movements": ["enter"]
+    },
+    {
+      "id": "exit-gate",
+      "mode": "exit_only",
+      "center": [55, 110],
+      "width": 6.0,
+      "heading_degrees": 270,
+      "allowed_movements": ["exit"]
+    }
+  ],
+  "pedestrian_and_emergency": {
+    "pedestrian_routes": [],
+    "fire_lanes": [],
+    "emergency_access_required": false
+  },
+  "vehicles": {
+    "design_vehicle": {
+      "id": "passenger-car",
+      "length": 4.8,
+      "width": 1.9,
+      "wheelbase": 2.8,
+      "min_turning_radius": 5.5,
+      "turning_radius_reference": "outer_front_wheel",
+      "track_width": 1.6,
+      "front_overhang": 1.0,
+      "rear_overhang": 1.0,
+      "swept_path_margin": 0.3,
+      "max_reverse_distance": 12.0
+    }
+  },
+  "parking": {
+    "stall_types": [
+      {
+        "id": "standard-90",
+        "family": "perpendicular",
+        "width": 2.5,
+        "length": 5.0,
+        "allowed_angles": [90],
+        "drive_over": false,
+        "access_sides": ["front"],
+        "enabled": true
+      }
+    ],
+    "quotas": {
+      "accessible_min": 0,
+      "ev_min": 0
+    }
+  },
+  "aisles": {
+    "selection_mode": "fixed",
+    "fixed_class": "narrow-one-way",
+    "classes": [
+      {
+        "id": "narrow-one-way",
+        "width": 3.5,
+        "capacity": "single_vehicle",
+        "directionality": "one_way",
+        "centerline_crossing": "not_applicable",
+        "enabled": true
+      }
+    ]
+  },
+  "constraints": {
+    "setbacks": {
+      "site_boundary": 0.0
+    },
+    "circulation": {
+      "one_way_allows_reverse_egress": false
+    },
+    "maneuvering": {
+      "require_turning_radius_check": false,
+      "require_swept_path_check": false
+    }
+  },
+  "optimization": {
+    "heading_deltas_degrees": [0],
+    "entrance_offsets": [0],
+    "enable_branches": false,
+    "enable_connectors": false,
+    "enable_dual_entrance": true,
+    "enable_main_aisle_dogleg": true,
+    "prefer_obstacle_clearance": true,
+    "enable_adaptive_dogleg_offsets": true,
+    "auto_lateral_offsets_for_obstacles": false,
+    "dogleg_offsets": [18, -18, 30, -30],
+    "max_dogleg_jogs": 3,
+    "enable_t_end_caps": false,
+    "promote_candidate_layout_preview": false,
+    "operational_quality_mode": "score_only"
+  },
+  "diagnostics": {
+    "include_unsupported_fields": true
+  }
+}

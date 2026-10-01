@@ -1,0 +1,188 @@
+{
+  "version": "layout-benchmark-manifest-1",
+  "smoke_case_ids": [
+    "phase0-site",
+    "dogleg-obstacle",
+    "dogleg-one-way-dual-entrance",
+    "tight-rear-court",
+    "offset-gate-quota"
+  ],
+  "cases": [
+    {
+      "case_id": "phase0-site",
+      "path": "examples/phase0_site.json",
+      "provenance": "synthetic",
+      "tags": ["baseline", "promotion", "branches", "connectors"],
+      "expectation": "valid_with_required_checks",
+      "required_checks": ["graph", "maneuver", "vehicle", "site", "engineering", "operational"]
+    },
+    {
+      "case_id": "parallel-strip",
+      "path": "examples/parallel_strip_site.json",
+      "provenance": "synthetic",
+      "tags": ["parallel", "narrow_strip"],
+      "expectation": "valid_with_required_checks",
+      "required_checks": ["graph", "maneuver", "site", "engineering", "operational"]
+    },
+    {
+      "case_id": "t-end",
+      "path": "examples/t_end_site.json",
+      "provenance": "synthetic",
+      "tags": ["t_end"],
+      "expectation": "valid_with_required_checks",
+      "required_checks": ["graph", "maneuver", "site", "engineering", "operational"]
+    },
+    {
+      "case_id": "opposite-loop",
+      "path": "examples/opposite_loop_site.json",
+      "provenance": "synthetic",
+      "tags": ["loop", "connectors"],
+      "expectation": "valid_with_required_checks",
+      "required_checks": ["graph", "maneuver", "site", "engineering", "operational"]
+    },
+    {
+      "case_id": "end-loop",
+      "path": "examples/end_loop_site.json",
+      "provenance": "synthetic",
+      "tags": ["loop", "obstacle"],
+      "expectation": "valid_with_required_checks",
+      "required_checks": ["graph", "maneuver", "site", "engineering", "operational"]
+    },
+    {
+      "case_id": "one-way-strip",
+      "path": "examples/one_way_strip_site.json",
+      "provenance": "synthetic",
+      "tags": ["one_way"],
+      "expectation": "valid_with_required_checks",
+      "required_checks": ["graph", "maneuver", "site", "engineering", "operational"]
+    },
+    {
+      "case_id": "dual-entrance",
+      "path": "examples/dual_entrance_site.json",
+      "provenance": "synthetic",
+      "tags": ["dual_entrance"],
+      "expectation": "valid_with_required_checks",
+      "required_checks": ["graph", "maneuver", "site", "engineering", "operational"]
+    },
+    {
+      "case_id": "obstacle-offset",
+      "path": "examples/obstacle_offset_site.json",
+      "provenance": "synthetic",
+      "tags": ["obstacle", "lateral_offset"],
+      "expectation": "valid_with_required_checks",
+      "required_checks": ["graph", "maneuver", "site", "engineering", "operational"]
+    },
+    {
+      "case_id": "dogleg-obstacle",
+      "path": "examples/dogleg_obstacle_site.json",
+      "provenance": "synthetic",
+      "tags": ["obstacle", "dogleg"],
+      "expectation": "valid_with_required_checks",
+      "required_checks": ["graph", "maneuver", "site", "engineering", "operational"]
+    },
+    {
+      "case_id": "dogleg-dual-entrance",
+      "path": "examples/dogleg_dual_entrance_site.json",
+      "provenance": "synthetic",
+      "tags": ["dogleg", "dual_entrance"],
+      "expectation": "valid_with_required_checks",
+      "required_checks": ["graph", "maneuver", "site", "engineering", "operational"]
+    },
+    {
+      "case_id": "dogleg-one-way-dual-entrance",
+      "path": "examples/dogleg_one_way_dual_entrance_site.json",
+      "provenance": "synthetic",
+      "tags": ["dogleg", "one_way", "dual_entrance", "strict_one_way"],
+      "expectation": "valid_with_required_checks",
+      "required_checks": ["graph", "maneuver", "site", "engineering", "operational"]
+    },
+    {
+      "case_id": "multi-jog-obstacle",
+      "path": "examples/multi_jog_obstacle_site.json",
+      "provenance": "synthetic",
+      "tags": ["obstacle", "multi_jog"],
+      "expectation": "valid_with_required_checks",
+      "required_checks": ["graph", "maneuver", "site", "engineering", "operational"]
+    },
+    {
+      "case_id": "multi-jog-dual-entrance",
+      "path": "examples/multi_jog_dual_entrance_site.json",
+      "provenance": "synthetic",
+      "tags": ["multi_jog", "dual_entrance"],
+      "expectation": "valid_with_required_checks",
+      "required_checks": ["graph", "maneuver", "site", "engineering", "operational"]
+    },
+    {
+      "case_id": "multi-jog-one-way-dual-entrance",
+      "path": "examples/multi_jog_one_way_dual_entrance_site.json",
+      "provenance": "synthetic",
+      "tags": ["multi_jog", "one_way", "dual_entrance", "strict_one_way"],
+      "expectation": "valid_with_required_checks",
+      "required_checks": ["graph", "maneuver", "site", "engineering", "operational"]
+    },
+    {
+      "case_id": "adaptive-dogleg",
+      "path": "examples/adaptive_dogleg_site.json",
+      "provenance": "synthetic",
+      "tags": ["dogleg", "adaptive", "obstacle"],
+      "expectation": "valid_with_required_checks",
+      "required_checks": ["graph", "maneuver", "site", "engineering", "operational"]
+    },
+    {
+      "case_id": "passing-bay-narrow",
+      "path": "examples/passing_bay_narrow_site.json",
+      "provenance": "synthetic",
+      "tags": ["passing_bay", "narrow_two_way"],
+      "expectation": "valid_with_required_checks",
+      "required_checks": ["graph", "maneuver", "site", "engineering", "operational"]
+    },
+    {
+      "case_id": "multi-spine-comparison",
+      "path": "examples/multi_spine_comparison_site.json",
+      "provenance": "synthetic",
+      "tags": ["multi_spine", "dogleg", "comparison"],
+      "expectation": "valid_with_required_checks",
+      "required_checks": ["graph", "maneuver", "site", "engineering", "operational"]
+    },
+    {
+      "case_id": "parallel-ladder-rect",
+      "path": "examples/parallel_ladder_rect_site.json",
+      "provenance": "synthetic",
+      "tags": ["v0_5", "parallel_ladder", "development"],
+      "expectation": "valid_with_required_checks",
+      "required_checks": ["graph", "maneuver", "site", "engineering", "operational"]
+    },
+    {
+      "case_id": "parallel-ladder-l",
+      "path": "examples/parallel_ladder_l_site.json",
+      "provenance": "synthetic",
+      "tags": ["v0_5", "parallel_ladder", "holdout"],
+      "expectation": "valid_with_required_checks",
+      "required_checks": ["graph", "maneuver", "site", "engineering", "operational"]
+    },
+    {
+      "case_id": "irregular-courtyard",
+      "path": "tests/fixtures/v0_3/irregular_courtyard_pass.json",
+      "provenance": "synthetic",
+      "tags": ["irregular", "vehicle", "site_constraints"],
+      "expectation": "valid_with_required_checks",
+      "required_checks": ["graph", "maneuver", "vehicle", "site", "engineering", "operational"]
+    },
+    {
+      "case_id": "tight-rear-court",
+      "path": "tests/fixtures/v0_3/tight_rear_court_reject.json",
+      "provenance": "synthetic",
+      "tags": ["vehicle_rejection"],
+      "expectation": "reject_vehicle_policy",
+      "required_checks": ["vehicle"]
+    },
+    {
+      "case_id": "offset-gate-quota",
+      "path": "tests/fixtures/v0_3/offset_gate_quota_reject.json",
+      "provenance": "synthetic",
+      "tags": ["quota", "contact"],
+      "expectation": "valid_only_if_quotas_and_contacts_satisfied",
+      "required_checks": ["quota", "contact", "site", "engineering"]
+    }
+  ]
+}

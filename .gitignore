@@ -1,9 +1,16 @@
+# Local Python environment and caches
 .venv/
 __pycache__/
 *.py[cod]
 .pytest_cache/
+.mypy_cache/
+.ruff_cache/
 
+# Generated drawings, reports, and local archives
 output/
+out/
+
+# Package build products
 *.egg-info/
 build/
 dist/

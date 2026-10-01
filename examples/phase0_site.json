@@ -1,5 +1,5 @@
 {
-  "version": "0.1",
+  "version": "0.3",
   "name": "phase0 large branch test sample",
   "units": "m",
   "standards": {
@@ -84,6 +84,10 @@
       "width": 1.9,
       "wheelbase": 2.8,
       "min_turning_radius": 5.5,
+      "turning_radius_reference": "outer_front_wheel",
+      "track_width": 1.6,
+      "front_overhang": 1.0,
+      "rear_overhang": 1.0,
       "swept_path_margin": 0.3,
       "max_reverse_distance": 12.0
     }

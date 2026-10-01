@@ -279,7 +279,11 @@ def test_cli_keeps_existing_output_set_when_rendering_fails(tmp_path: Path, caps
         operational_quality={"valid": True},
     )
     monkeypatch.setattr(cli, "generate_layout", lambda site: valid_layout)
-    monkeypatch.setattr(cli, "write_dxf", lambda layout, path: Path(path).write_text("new dxf", encoding="utf-8"))
+    monkeypatch.setattr(
+        cli,
+        "write_dxf",
+        lambda layout, path, **_kwargs: Path(path).write_text("new dxf", encoding="utf-8"),
+    )
 
     def fail_svg(layout, path) -> None:
         Path(path).write_text("partial svg", encoding="utf-8")
@@ -318,7 +322,7 @@ def test_cli_rolls_back_existing_output_set_when_commit_fails(tmp_path: Path, ca
     )
     monkeypatch.setattr(cli, "generate_layout", lambda site: valid_layout)
 
-    def render(layout, path) -> None:
+    def render(layout, path, **_kwargs) -> None:
         Path(path).write_text("new output", encoding="utf-8")
 
     monkeypatch.setattr(cli, "write_dxf", render)

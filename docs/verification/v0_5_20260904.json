@@ -1,0 +1,46 @@
+{
+  "version": "openparkcad-v0.5-acceptance-1",
+  "date": "2026-09-04",
+  "source": "synthetic",
+  "real_cad": false,
+  "commits": {
+    "N0": "e19234d3984c720cc8c9af5245d31e574807a3f9",
+    "N1": "1eb0d6da4635742ae73dfbc5416d9eb9958159c6",
+    "N2": "42b1ea192683183b0538381759ad2c572f07f7e8",
+    "N3": "7a7313dd0c6e9bff8a76d438666c34b0d5625dbf",
+    "N4": "1471b3823799bf559b2f89f0f65f03c2a289a747",
+    "N5": "2423a9d65d37839aadd4b8358836141ef257db48",
+    "N6": "93a952fd7c574cfb4420ab561f3ea3f944c50706",
+    "N7": "e4e932dd787665d7ef47fc36bfdfa1f0a21de863",
+    "N8": "a0a1d0f1a2d0df6819379f18a8d84dfb3656d868"
+  },
+  "n9": {
+    "ruff": 0,
+    "pytest_passed": 500,
+    "coverage_percent": 83.77,
+    "fail_under": 80,
+    "build": 0,
+    "wheel_solve": 0,
+    "wheel_package_from_workspace": false,
+    "rollbacks": {
+      "enabled_false": true,
+      "families_legacy": true,
+      "promotion_off": true,
+      "greedy_backend": true
+    },
+    "matrix": {
+      "cells": 1152,
+      "outcomes": {"valid": 502, "invalid": 500, "timeout": 150, "exception": 0},
+      "family_comparison": {"improved": 0, "tied": 250, "degraded": 0, "unresolved": 246, "incomparable": 80},
+      "evidence_dir": "output/verification/v0_5/20260904-184545-n9-matrix",
+      "receipt": "docs/verification/v0_5_n9_matrix.json"
+    }
+  },
+  "road_network_search_version": "road-network-search-1",
+  "coverage_fail_under": 80,
+  "notes": [
+    "Schema/CLI/project files in the pre-existing dirty tree were not modified.",
+    "one_way_loop remains unavailable.",
+    "All effect claims are synthetic-only."
+  ]
+}

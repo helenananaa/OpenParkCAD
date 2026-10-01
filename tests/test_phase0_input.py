@@ -85,18 +85,20 @@ def test_phase0_parser_preserves_enabled_stall_type_candidates():
     assert [stall.id for stall in site.stall_candidates] == ["standard-90", "angled-60"]
 
 
-def test_phase0_diagnostics_are_honest_about_future_fields():
+def test_phase0_diagnostics_distinguish_pending_active_and_advisory_fields():
     data = json.loads(Path("examples/phase0_site.json").read_text(encoding="utf-8"))
     site = site_from_dict(data)
 
     diagnostics = build_input_diagnostics(site)
 
     assert diagnostics["source_format"] == "phase0"
-    assert "site_features" in diagnostics["parsed_future_fields"]
-    assert diagnostics["field_support"]["site_features"] == "drawn_not_enforced"
+    assert "site_features" not in diagnostics["parsed_future_fields"]
+    assert diagnostics["field_support"]["site_features"] == "declared_pending_layout"
     assert diagnostics["field_support"]["entrances"] == "drawn_not_enforced"
-    assert diagnostics["field_support"]["vehicles.design_vehicle"] == "parsed_not_enforced"
-    assert any("turning radius" in item for item in diagnostics["warnings"])
+    assert diagnostics["field_support"]["vehicles.design_vehicle"] == "requested_pending_layout"
+    assert diagnostics["field_support"]["pedestrian_and_emergency.pedestrian_routes"] == "advisory_only"
+    assert diagnostics["vehicle_validation"]["mode"] == "conservative_analytic"
+    assert any("rear-axle turning-radius" in item for item in diagnostics["warnings"])
     assert any(item["constraint"] == "entrance to main aisle" and item["status"] == "future" for item in diagnostics["constraint_status"])
 
 
@@ -124,7 +126,7 @@ def test_phase0_diagnostics_mark_main_aisle_connection_active_with_layout():
     assert layout.stall_count == 83
     assert layout.candidate_layout_promotion["status"] == "promoted"
     assert layout.maneuver_validation["rule_counts"]["perpendicular_90_l_shape_proxy"] == 2
-    assert layout.operational_quality["version"] == "phase5q-1"
+    assert layout.operational_quality["version"] == "phase5r-1"
     assert "operational_risk" in layout.score
     assert diagnostics["field_support"]["entrances"] == "active"
     assert diagnostics["field_support"]["constraints.entrance_to_main_aisle"] == "active"
@@ -160,6 +162,14 @@ def test_phase0_diagnostics_mark_main_aisle_connection_active_with_layout():
     assert diagnostics["field_support"]["optimization.operational_narrow_two_way_meeting_gap_risk"] == "available"
     assert diagnostics["field_support"]["optimization.operational_narrow_two_way_junction_merge_risk"] == "available"
     assert diagnostics["field_support"]["constraints.maneuver_l_shape_fallback"] == "active"
+    assert diagnostics["field_support"]["constraints.turning_radius"] == "active_conservative"
+    assert diagnostics["field_support"]["constraints.swept_path"] == "available"
+    assert diagnostics["field_support"]["constraints.reverse_distance"] == "active_conservative"
+    assert diagnostics["field_support"]["constraints.site_hard_exclusions"] == "active"
+    assert diagnostics["field_support"]["site_features"] == "active"
+    assert diagnostics["vehicle_validation"]["status"] == "active_conservative"
+    assert diagnostics["field_support"]["diagnostics.engineering_validation"] == "active"
+    assert diagnostics["engineering_validation"]["contract_version"] == "openparkcad-v0.3"
     assert diagnostics["field_support"]["constraints.operational_quality"] == "active"
     assert diagnostics["field_support"]["constraints.operational_directionality_risk"] == "active"
     assert diagnostics["field_support"]["constraints.operational_narrow_two_way_risk"] == "active"

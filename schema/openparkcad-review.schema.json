@@ -1,0 +1,20 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/helenananaa/OpenParkCAD/blob/main/schema/openparkcad-review.schema.json",
+  "title": "OpenParkCAD review-bundle-1",
+  "type": "object",
+  "required": ["version", "site", "official", "candidates"],
+  "properties": {
+    "version": {"const": "review-bundle-1"},
+    "package_version": {"type": "string"},
+    "scope": {"type": "string"},
+    "site": {"type": "object"},
+    "transform": {"type": ["object", "null"]},
+    "official": {"type": "object"},
+    "candidates": {"type": "array"},
+    "road_traversal": {"type": "object"},
+    "failures": {"type": "array"},
+    "journeys": {"type": "array"}
+  },
+  "additionalProperties": true
+}

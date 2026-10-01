@@ -1,0 +1,60 @@
+{
+  "version": "openparkcad-v0.5-n9-matrix-1",
+  "date": "2026-09-07",
+  "source": "synthetic",
+  "real_cad": false,
+  "evidence_dir": "output/verification/v0_5/20260904-184545-n9-matrix",
+  "cells": 1152,
+  "cases": 24,
+  "variants": 16,
+  "repeats": 3,
+  "sequential": true,
+  "outcomes": {
+    "valid": 502,
+    "invalid": 500,
+    "timeout": 150,
+    "exception": 0
+  },
+  "family_off_vs_parallel_ladder": {
+    "improved": 0,
+    "tied": 250,
+    "degraded": 0,
+    "unresolved": 246,
+    "incomparable": 80
+  },
+  "ceilings": {
+    "single_case_hard_timeout_seconds": 180.0,
+    "max_skeletons": 16,
+    "max_full_evaluations_default": 8,
+    "refinement_budget_seconds_default": 20.0,
+    "relaxed_after_seeing_numbers": false
+  },
+  "timeouts": {
+    "count": 150,
+    "road_traversal_requested": 148,
+    "road_traversal_unrequested": 2,
+    "note": "Hits of the frozen N0 180s hard ceiling. Almost all requested road_traversal overlays on loop/obstacle/dogleg/multi-spine sites. Ceiling was not raised."
+  },
+  "default_mode": {
+    "definition": "family off, greedy, promotion off, road_traversal unrequested",
+    "cells": 72,
+    "valid": 63,
+    "invalid": 9,
+    "invalid_cases": ["offset-gate-quota", "tight-rear-court", "parallel-ladder-tight-reject"],
+    "phase0_site": {
+      "stall_count": 83,
+      "score_total": 7512.800384521484,
+      "matches_n0": true
+    },
+    "unexplained_regression": false
+  },
+  "repeat_disagreements": 5,
+  "durations_seconds": {
+    "min": 0.023,
+    "median": 5.18,
+    "mean": 45.94,
+    "p95": 180.0,
+    "max": 180.0,
+    "sum": 52924.13
+  }
+}

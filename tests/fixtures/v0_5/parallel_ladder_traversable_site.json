@@ -1,0 +1,154 @@
+{
+  "version": "0.3",
+  "name": "Parallel ladder with complete passenger-car journeys (synthetic)",
+  "units": "m",
+  "standards": {
+    "jurisdiction": "unspecified",
+    "standard_profile": "project-policy-only",
+    "strictness": "conservative",
+    "notes": "Synthetic development case. Not a licensed site, code-compliance example, or constructability proof."
+  },
+  "site": {
+    "boundary": {
+      "type": "polygon",
+      "points": [
+        [
+          0,
+          0
+        ],
+        [
+          56,
+          0
+        ],
+        [
+          56,
+          48
+        ],
+        [
+          0,
+          48
+        ]
+      ]
+    },
+    "obstacles": [],
+    "reserved_areas": []
+  },
+  "entrances": [
+    {
+      "id": "south-gate",
+      "mode": "shared",
+      "center": [
+        28,
+        0
+      ],
+      "width": 8.0,
+      "heading_degrees": 90,
+      "allowed_movements": [
+        "enter",
+        "exit"
+      ]
+    }
+  ],
+  "vehicles": {
+    "design_vehicle": {
+      "id": "passenger-car",
+      "length": 4.8,
+      "width": 1.9,
+      "wheelbase": 2.8,
+      "min_turning_radius": 5.5,
+      "turning_radius_reference": "outer_front_wheel",
+      "track_width": 1.6,
+      "front_overhang": 1.0,
+      "rear_overhang": 1.0,
+      "swept_path_margin": 0.3,
+      "max_reverse_distance": 12.0
+    }
+  },
+  "parking": {
+    "stall_types": [
+      {
+        "id": "standard-90",
+        "family": "perpendicular",
+        "width": 3.5,
+        "length": 5.5,
+        "allowed_angles": [
+          90
+        ]
+      }
+    ]
+  },
+  "aisles": {
+    "selection_mode": "fixed",
+    "fixed_class": "wide-two-way-no-cross",
+    "classes": [
+      {
+        "id": "wide-two-way-no-cross",
+        "width": 6.0,
+        "capacity": "two_vehicle",
+        "directionality": "two_way"
+      }
+    ]
+  },
+  "constraints": {
+    "setbacks": {
+      "site_boundary": 0.0
+    },
+    "maneuvering": {
+      "require_turning_radius_check": true,
+      "require_swept_path_check": false,
+      "max_reverse_distance": 12.0
+    },
+    "road_traversal": {
+      "enabled": true,
+      "scope": "site_interior",
+      "time_budget_seconds": 60.0
+    }
+  },
+  "optimization": {
+    "objective": "balanced",
+    "heading_deltas_degrees": [
+      0
+    ],
+    "entrance_offsets": [
+      0
+    ],
+    "enable_branches": false,
+    "max_branches": 0,
+    "branch_sides": [
+      "left",
+      "right"
+    ],
+    "branch_start_positions": [
+      18,
+      30
+    ],
+    "enable_connectors": false,
+    "enable_t_end_caps": false,
+    "promote_candidate_layout_preview": true,
+    "road_network": {
+      "enabled": true,
+      "families": [
+        "legacy",
+        "parallel_ladder"
+      ],
+      "max_skeletons": 1,
+      "dominant_axis_count": 1,
+      "max_parallel_aisles": 2,
+      "cross_aisle_policy": "both_ends",
+      "allow_one_way_loop": false,
+      "max_full_evaluations": 1,
+      "refinement_budget_seconds": 60.0
+    },
+    "selector_backend": "greedy",
+    "weights": {
+      "stall_count": 100,
+      "aisle_area": 0,
+      "dead_end_length": 0,
+      "branch_count": 0
+    }
+  },
+  "metadata": {
+    "fixture_provenance": "synthetic",
+    "notes": "Separate generous-bay journey acceptance case; does not replace the frozen 2.5 m N-T01 density case. All generated retained stalls must pass. Vehicle dimensions and 0.3 m margin unchanged."
+  }
+}

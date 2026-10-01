@@ -1,0 +1,47 @@
+{
+  "version": "openparkcad-v0.5-n9-skeptic-gap-1",
+  "date": "2026-09-07",
+  "source": "synthetic",
+  "real_cad": false,
+  "parent_commit": "6dcc2d333a7ee6d58dafdd3dd08a17e98482e3ad",
+  "evidence_dir": "output/verification/v0_5/20260907-143304-n9-skeptic-gap",
+  "quality": {
+    "ruff": 0,
+    "pytest_passed": 507,
+    "coverage_percent": 83.83,
+    "fail_under": 80,
+    "build": 0
+  },
+  "isolated_wheel": {
+    "wheel": "dist/openparkcad-0.3.0-py3-none-any.whl",
+    "sha256": "44822800bec8f0e92732543429e70c9d09646a7ae5fe8e15880bf41117188834",
+    "python_flags": ["-I"],
+    "cwd_not_workspace": true,
+    "executable": "E:\\CacheVault\\Temp\\openparkcad-v05-wheel-977357fc804a4cabb26dcd1749fded05\\venv\\Scripts\\python.exe",
+    "package_file": "E:\\CacheVault\\Temp\\openparkcad-v05-wheel-977357fc804a4cabb26dcd1749fded05\\venv\\Lib\\site-packages\\openparkcad\\__init__.py",
+    "schema_road_network": "E:\\CacheVault\\Temp\\openparkcad-v05-wheel-977357fc804a4cabb26dcd1749fded05\\venv\\share\\openparkcad\\schema\\road-network.schema.json",
+    "executable_in_workspace_venv": false,
+    "package_in_workspace": false,
+    "ortools_installed": false,
+    "solve_exit": 0,
+    "stall_count": 72,
+    "generation_mode": "parallel_ladder_shadow",
+    "road_network_search": {
+      "version": "road-network-search-1",
+      "requested": true,
+      "executed": true,
+      "families": ["legacy", "parallel_ladder"],
+      "verified": 3
+    },
+    "layout_identity": "ebb494be68b65705c9fe34cd0caa01f4f49d38b7f20bc8cc4966b8d323722963",
+    "review_candidate_id": "official-4c2043a9d120",
+    "engineering_decision": "pass"
+  },
+  "n8_deviation": "Live field frozen as schema/road-network.schema.json plus runtime fail-closed parse. User-owned openparkcad-input.schema.json, cli.py, and project_model.py were not edited.",
+  "frozen_site_solved": {
+    "case": "N-T01",
+    "baseline_stalls": 42,
+    "promoted_stalls": 72,
+    "synthetic": true
+  }
+}

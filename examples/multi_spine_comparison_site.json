@@ -1,0 +1,110 @@
+{
+  "version": "0.3",
+  "name": "multi-spine comparison site",
+  "units": "m",
+  "standards": {
+    "jurisdiction": "unspecified",
+    "standard_profile": "project-policy-only",
+    "strictness": "conservative",
+    "notes": "Synthetic site: two lateral spines and perpendicular/angled stall families. Legacy template ranking keeps one spine; multi_spine module rebuild plus promotion yields a higher official score."
+  },
+  "site": {
+    "boundary": {
+      "type": "polygon",
+      "points": [[0, 0], [86, 0], [86, 70], [0, 70]]
+    },
+    "obstacles": [],
+    "reserved_areas": []
+  },
+  "entrances": [
+    {
+      "id": "main",
+      "mode": "shared",
+      "center": [43, 0],
+      "width": 8.0,
+      "heading_degrees": 90,
+      "allowed_movements": ["enter", "exit"]
+    }
+  ],
+  "vehicles": {
+    "design_vehicle": {
+      "id": "passenger-car",
+      "length": 4.8,
+      "width": 1.9,
+      "wheelbase": 2.8,
+      "min_turning_radius": 5.5,
+      "turning_radius_reference": "outer_front_wheel",
+      "track_width": 1.6,
+      "front_overhang": 1.0,
+      "rear_overhang": 1.0,
+      "swept_path_margin": 0.3,
+      "max_reverse_distance": 12.0
+    }
+  },
+  "parking": {
+    "stall_types": [
+      {
+        "id": "standard-90",
+        "family": "perpendicular",
+        "width": 2.5,
+        "length": 5.0,
+        "allowed_angles": [90]
+      },
+      {
+        "id": "angled-60",
+        "family": "angled",
+        "width": 2.5,
+        "length": 5.5,
+        "allowed_angles": [60]
+      }
+    ]
+  },
+  "aisles": {
+    "selection_mode": "fixed",
+    "fixed_class": "wide-two-way-no-cross",
+    "classes": [
+      {
+        "id": "wide-two-way-no-cross",
+        "width": 6.0,
+        "capacity": "two_vehicle",
+        "directionality": "two_way"
+      }
+    ]
+  },
+  "constraints": {
+    "setbacks": {"site_boundary": 0.0},
+    "maneuvering": {
+      "require_turning_radius_check": true,
+      "require_swept_path_check": false,
+      "max_reverse_distance": 12.0
+    }
+  },
+  "optimization": {
+    "heading_deltas_degrees": [0],
+    "entrance_offsets": [0],
+    "enable_branches": true,
+    "max_branches": 1,
+    "branch_sides": ["left"],
+    "branch_start_positions": [24, 42, 60],
+    "enable_connectors": false,
+    "enable_t_end_caps": false,
+    "main_aisle_lateral_offsets": [0.0, 6.0],
+    "promote_candidate_layout_preview": true,
+    "selector_backend": "cpsat",
+    "selector_seed": 17,
+    "selector_time_limit_seconds": 2.0,
+    "selector_num_workers": 1,
+    "layout_search": {
+      "mode": "multi_spine",
+      "top_k": 4,
+      "refinement_budget_seconds": 20.0
+    },
+    "weights": {
+      "stall_count": 100,
+      "aisle_area": 0,
+      "dead_end_length": 0,
+      "branch_count": 0
+    },
+    "operational_quality_mode": "score_only"
+  }
+}

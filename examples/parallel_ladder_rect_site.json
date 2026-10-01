@@ -1,0 +1,135 @@
+{
+  "version": "0.3",
+  "name": "v0.5 parallel-ladder wide rectangle (synthetic)",
+  "units": "m",
+  "standards": {
+    "jurisdiction": "unspecified",
+    "standard_profile": "project-policy-only",
+    "strictness": "conservative",
+    "notes": "Synthetic development case. Not a licensed site, code-compliance example, or constructability proof."
+  },
+  "site": {
+    "boundary": {
+      "type": "polygon",
+      "points": [[0, 0], [56, 0], [56, 48], [0, 48]]
+    },
+    "obstacles": [],
+    "reserved_areas": []
+  },
+  "entrances": [
+    {
+      "id": "south-gate",
+      "mode": "shared",
+      "center": [28, 0],
+      "width": 8.0,
+      "heading_degrees": 90,
+      "allowed_movements": ["enter", "exit"]
+    }
+  ],
+  "vehicles": {
+    "design_vehicle": {
+      "id": "passenger-car",
+      "length": 4.8,
+      "width": 1.9,
+      "wheelbase": 2.8,
+      "min_turning_radius": 5.5,
+      "turning_radius_reference": "outer_front_wheel",
+      "track_width": 1.6,
+      "front_overhang": 1.0,
+      "rear_overhang": 1.0,
+      "swept_path_margin": 0.3,
+      "max_reverse_distance": 12.0
+    }
+  },
+  "parking": {
+    "stall_types": [
+      {
+        "id": "standard-90",
+        "family": "perpendicular",
+        "width": 2.5,
+        "length": 5.0,
+        "allowed_angles": [90]
+      }
+    ]
+  },
+  "aisles": {
+    "selection_mode": "fixed",
+    "fixed_class": "wide-two-way-no-cross",
+    "classes": [
+      {
+        "id": "wide-two-way-no-cross",
+        "width": 6.0,
+        "capacity": "two_vehicle",
+        "directionality": "two_way"
+      }
+    ]
+  },
+  "constraints": {
+    "setbacks": {"site_boundary": 0.0},
+    "maneuvering": {
+      "require_turning_radius_check": true,
+      "require_swept_path_check": false,
+      "max_reverse_distance": 12.0
+    }
+  },
+  "optimization": {
+    "objective": "balanced",
+    "heading_deltas_degrees": [0],
+    "entrance_offsets": [0],
+    "enable_branches": true,
+    "max_branches": 2,
+    "branch_sides": ["left", "right"],
+    "branch_start_positions": [18, 30],
+    "enable_connectors": false,
+    "enable_t_end_caps": false,
+    "promote_candidate_layout_preview": true,
+    "road_network": {
+      "enabled": true,
+      "families": ["legacy", "parallel_ladder"],
+      "max_skeletons": 16,
+      "dominant_axis_count": 2,
+      "max_parallel_aisles": 6,
+      "cross_aisle_policy": "both_ends",
+      "allow_one_way_loop": false
+    },
+    "selector_backend": "greedy",
+    "weights": {
+      "stall_count": 100,
+      "aisle_area": 0,
+      "dead_end_length": 0,
+      "branch_count": 0
+    }
+  },
+  "metadata": {
+    "author": "OpenParkCAD",
+    "coordinate_system": "local meters",
+    "fixture_provenance": "synthetic",
+    "v0_5": {
+      "source": "synthetic",
+      "case_id": "N-T01",
+      "kind": "positive",
+      "split": "development",
+      "scenario": "wide_rectangle_both_ends",
+      "human_reference": "three north-south parking aisles plus east-west cross aisles at both ends",
+      "intended_road_network": {
+        "enabled": true,
+        "families": ["legacy", "parallel_ladder"],
+        "max_skeletons": 16,
+        "dominant_axis_count": 2,
+        "max_parallel_aisles": 6,
+        "cross_aisle_policy": "both_ends",
+        "allow_one_way_loop": false
+      }
+    },
+    "notes": "Double-loaded module is 16 m; three parallel bands fit in 56 m. Current single-spine plus perpendicular branches is not that ladder."
+  },
+  "regression_expectations": {
+    "source": "synthetic",
+    "case_id": "N-T01",
+    "kind": "positive",
+    "split": "development",
+    "current_insufficient_when": "fewer than two distinct parallel parking aisles aligned with the entrance heading, or no real cross aisle contacting two of them, or missing both-end cross aisles",
+    "solved_when": "a parallel_ladder skeleton has at least two distinct parking aisles and a real connecting cross aisle without shrinking the 6.0 m hard aisle width",
+    "not_a_kpi": "absolute stall count is site-local, not a universal success metric"
+  }
+}

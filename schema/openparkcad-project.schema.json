@@ -1,0 +1,30 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/helenananaa/OpenParkCAD/blob/main/schema/openparkcad-project.schema.json",
+  "title": "OpenParkCAD project-1",
+  "type": "object",
+  "required": ["version"],
+  "properties": {
+    "version": {"const": "openparkcad-project-1"},
+    "name": {"type": "string"},
+    "current_revision": {"type": "integer"},
+    "revisions": {"type": "array"},
+    "accepted_layout": {"type": ["object", "null"]},
+    "object_ids": {"type": "object", "additionalProperties": {"type": "string"}},
+    "object_sources": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "object",
+        "required": ["official_object_id", "skeleton_id", "skeleton_version", "family", "source_segment_id"],
+        "properties": {
+          "official_object_id": {"type": "string"},
+          "skeleton_id": {"type": "string"},
+          "skeleton_version": {"const": "road-skeleton-1"},
+          "family": {"type": "string"},
+          "source_segment_id": {"type": ["string", "null"]}
+        }
+      }
+    }
+  },
+  "additionalProperties": true
+}

@@ -1,0 +1,33 @@
+{
+  "version": "spacing-corpus-1",
+  "cases": [
+    {
+      "id": "rectangle",
+      "path": "tests/fixtures/spacing_search/rectangle.json",
+      "sha256": "749b65ceeb030bb69507d13f59542a7dd18eb78faf280e5864e3f0213712a1cb",
+      "human_reference": null
+    },
+    {
+      "id": "deeper_rectangle",
+      "path": "tests/fixtures/spacing_search/deeper_rectangle.json",
+      "sha256": "c910ea56c434778a6ced958dd5e11e51a8b48422392445db02eebcdd3dfe3d9b",
+      "human_reference": null
+    },
+    {
+      "id": "l_shape",
+      "path": "tests/fixtures/spacing_search/l_shape.json",
+      "sha256": "93126ae688c40146f695afffcce47a64247180b9039647a1ee503e9e1224a43f",
+      "human_reference": null
+    },
+    {
+      "id": "retention_floor",
+      "path": "tests/fixtures/spacing_search/retention_floor.json",
+      "sha256": "0524b4234f514101e77b17ba6216880187c2bfe2eb5e7aac0fbc6ba548f56d90",
+      "human_reference": null
+    }
+  ],
+  "repeats": 3,
+  "worker_timeout_seconds": 300,
+  "shared_host_timing": true,
+  "comparison": "delete_only_vs_spacing_search_with_identical_240s_outer_120s_road_budgets"
+}

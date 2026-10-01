@@ -1,0 +1,136 @@
+{
+  "version": "0.3",
+  "name": "multi-jog around staggered obstacles",
+  "units": "m",
+  "standards": {
+    "jurisdiction": "CN",
+    "standard_profile": "custom",
+    "strictness": "conservative",
+    "notes": "Center block plus left/right mid blocks; single dogleg stops early; multi-jog chains lateral bypasses."
+  },
+  "site": {
+    "boundary": {
+      "type": "polygon",
+      "points": [[0, 0], [90, 0], [90, 110], [0, 110]]
+    },
+    "obstacles": [
+      {
+        "id": "front-block",
+        "type": "building",
+        "geometry": {
+          "type": "polygon",
+          "points": [[32, 16], [58, 16], [58, 30], [32, 30]]
+        },
+        "clearance": 0.5
+      },
+      {
+        "id": "right-block",
+        "type": "building",
+        "geometry": {
+          "type": "polygon",
+          "points": [[52, 50], [80, 50], [80, 68], [52, 68]]
+        },
+        "clearance": 0.5
+      },
+      {
+        "id": "left-block",
+        "type": "building",
+        "geometry": {
+          "type": "polygon",
+          "points": [[10, 50], [38, 50], [38, 68], [10, 68]]
+        },
+        "clearance": 0.5
+      }
+    ],
+    "reserved_areas": []
+  },
+  "site_features": [],
+  "entrances": [
+    {
+      "id": "main-gate",
+      "mode": "shared",
+      "center": [45, 0],
+      "width": 8.0,
+      "heading_degrees": 90,
+      "allowed_movements": ["enter", "exit"]
+    }
+  ],
+  "pedestrian_and_emergency": {
+    "pedestrian_routes": [],
+    "fire_lanes": [],
+    "emergency_access_required": false
+  },
+  "vehicles": {
+    "design_vehicle": {
+      "id": "passenger-car",
+      "length": 4.8,
+      "width": 1.9,
+      "wheelbase": 2.8,
+      "min_turning_radius": 5.5,
+      "turning_radius_reference": "outer_front_wheel",
+      "track_width": 1.6,
+      "front_overhang": 1.0,
+      "rear_overhang": 1.0,
+      "swept_path_margin": 0.3,
+      "max_reverse_distance": 12.0
+    }
+  },
+  "parking": {
+    "stall_types": [
+      {
+        "id": "standard-90",
+        "family": "perpendicular",
+        "width": 2.5,
+        "length": 5.0,
+        "allowed_angles": [90],
+        "drive_over": false,
+        "access_sides": ["front"],
+        "enabled": true
+      }
+    ],
+    "quotas": {
+      "accessible_min": 0,
+      "ev_min": 0
+    }
+  },
+  "aisles": {
+    "selection_mode": "fixed",
+    "fixed_class": "wide-two-way-no-cross",
+    "classes": [
+      {
+        "id": "wide-two-way-no-cross",
+        "width": 6.0,
+        "capacity": "two_vehicle",
+        "directionality": "two_way",
+        "centerline_crossing": "forbidden",
+        "enabled": true
+      }
+    ]
+  },
+  "constraints": {
+    "setbacks": {
+      "site_boundary": 0.0
+    },
+    "maneuvering": {
+      "require_turning_radius_check": false,
+      "require_swept_path_check": false
+    }
+  },
+  "optimization": {
+    "heading_deltas_degrees": [0],
+    "entrance_offsets": [0],
+    "enable_branches": false,
+    "enable_connectors": false,
+    "enable_main_aisle_dogleg": true,
+    "prefer_obstacle_clearance": true,
+    "auto_lateral_offsets_for_obstacles": false,
+    "dogleg_offsets": [18, -18, 30, -30],
+    "max_dogleg_jogs": 3,
+    "enable_t_end_caps": false,
+    "promote_candidate_layout_preview": false,
+    "operational_quality_mode": "score_only"
+  },
+  "diagnostics": {
+    "include_unsupported_fields": true
+  }
+}

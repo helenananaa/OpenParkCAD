@@ -1,0 +1,2044 @@
+{
+  "version": "openparkcad-v0.4-acceptance-1",
+  "date": "2026-09-03",
+  "source_commit": "67eec8b5274bf58e28b9ad1a73a34b134e0dbcc0",
+  "benchmark": {
+    "source_identity": {
+      "commit": "67eec8b5274bf58e28b9ad1a73a34b134e0dbcc0",
+      "dirty": false,
+      "status": ""
+    },
+    "run_summary": {
+      "run_count": 240,
+      "outcomes": {
+        "valid": 216,
+        "invalid": 24,
+        "input_error": 0,
+        "exception": 0,
+        "timeout": 0
+      },
+      "expectation_met_count": 240,
+      "unexpected": [],
+      "cpsat_requested_count": 120,
+      "cpsat_success_count": 120,
+      "cpsat_fallback_count": 0,
+      "cpsat_fallbacks": [],
+      "comparison_incomplete": false,
+      "incomplete_reason": null,
+      "exit_nonzero_reasons": []
+    },
+    "parameters": {
+      "profile": "all",
+      "repeats": 3,
+      "timeout_seconds": 180.0,
+      "keep_original_promotion": false,
+      "variant_ids": [
+        "legacy-greedy",
+        "legacy-cpsat",
+        "multi-greedy",
+        "multi-cpsat"
+      ]
+    },
+    "controls_wrong": [],
+    "source_identity_mismatches": [],
+    "mutated_inputs": [],
+    "comparisons": {
+      "tied": 99,
+      "improved": 9,
+      "both_rejected": 12
+    },
+    "changes": [
+      {
+        "case": "end-loop",
+        "backend": "cpsat",
+        "repeat": 1,
+        "classification": "improved",
+        "score_delta": 2636.5997619628906,
+        "legacy_stalls": 82,
+        "multi_stalls": 105
+      },
+      {
+        "case": "end-loop",
+        "backend": "cpsat",
+        "repeat": 2,
+        "classification": "improved",
+        "score_delta": 2636.5997619628906,
+        "legacy_stalls": 82,
+        "multi_stalls": 105
+      },
+      {
+        "case": "end-loop",
+        "backend": "cpsat",
+        "repeat": 3,
+        "classification": "improved",
+        "score_delta": 2636.5997619628906,
+        "legacy_stalls": 82,
+        "multi_stalls": 105
+      },
+      {
+        "case": "multi-spine-comparison",
+        "backend": "cpsat",
+        "repeat": 1,
+        "classification": "improved",
+        "score_delta": 199.5,
+        "legacy_stalls": 65,
+        "multi_stalls": 67
+      },
+      {
+        "case": "multi-spine-comparison",
+        "backend": "cpsat",
+        "repeat": 2,
+        "classification": "improved",
+        "score_delta": 199.5,
+        "legacy_stalls": 65,
+        "multi_stalls": 67
+      },
+      {
+        "case": "multi-spine-comparison",
+        "backend": "cpsat",
+        "repeat": 3,
+        "classification": "improved",
+        "score_delta": 199.5,
+        "legacy_stalls": 65,
+        "multi_stalls": 67
+      },
+      {
+        "case": "multi-spine-comparison",
+        "backend": "greedy",
+        "repeat": 1,
+        "classification": "improved",
+        "score_delta": 199.5,
+        "legacy_stalls": 65,
+        "multi_stalls": 67
+      },
+      {
+        "case": "multi-spine-comparison",
+        "backend": "greedy",
+        "repeat": 2,
+        "classification": "improved",
+        "score_delta": 199.5,
+        "legacy_stalls": 65,
+        "multi_stalls": 67
+      },
+      {
+        "case": "multi-spine-comparison",
+        "backend": "greedy",
+        "repeat": 3,
+        "classification": "improved",
+        "score_delta": 199.5,
+        "legacy_stalls": 65,
+        "multi_stalls": 67
+      }
+    ],
+    "statistics": [
+      {
+        "case": "adaptive-dogleg",
+        "variant": "legacy-cpsat",
+        "n": 3,
+        "outcomes": {
+          "valid": 3
+        },
+        "stalls": {
+          "median": 42,
+          "min": 42,
+          "max": 42
+        },
+        "score": {
+          "median": 3500.6001831054687,
+          "min": 3500.6001831054687,
+          "max": 3500.6001831054687
+        },
+        "seconds": {
+          "median": 0.5819303999996919,
+          "min": 0.580798799999684,
+          "max": 0.5874939000004815
+        }
+      },
+      {
+        "case": "adaptive-dogleg",
+        "variant": "legacy-greedy",
+        "n": 3,
+        "outcomes": {
+          "valid": 3
+        },
+        "stalls": {
+          "median": 42,
+          "min": 42,
+          "max": 42
+        },
+        "score": {
+          "median": 3500.6001831054687,
+          "min": 3500.6001831054687,
+          "max": 3500.6001831054687
+        },
+        "seconds": {
+          "median": 0.3199617999998736,
+          "min": 0.3171290999998746,
+          "max": 0.3390253000015946
+        }
+      },
+      {
+        "case": "adaptive-dogleg",
+        "variant": "multi-cpsat",
+        "n": 3,
+        "outcomes": {
+          "valid": 3
+        },
+        "stalls": {
+          "median": 42,
+          "min": 42,
+          "max": 42
+        },
+        "score": {
+          "median": 3500.6001831054687,
+          "min": 3500.6001831054687,
+          "max": 3500.6001831054687
+        },
+        "seconds": {
+          "median": 0.9900319999997009,
+          "min": 0.9838517999996839,
+          "max": 1.000019400000383
+        }
+      },
+      {
+        "case": "adaptive-dogleg",
+        "variant": "multi-greedy",
+        "n": 3,
+        "outcomes": {
+          "valid": 3
+        },
+        "stalls": {
+          "median": 42,
+          "min": 42,
+          "max": 42
+        },
+        "score": {
+          "median": 3500.6001831054687,
+          "min": 3500.6001831054687,
+          "max": 3500.6001831054687
+        },
+        "seconds": {
+          "median": 0.7035737000005611,
+          "min": 0.7023179000007076,
+          "max": 0.7057210000002669
+        }
+      },
+      {
+        "case": "dogleg-dual-entrance",
+        "variant": "legacy-cpsat",
+        "n": 3,
+        "outcomes": {
+          "valid": 3
+        },
+        "stalls": {
+          "median": 62,
+          "min": 62,
+          "max": 62
+        },
+        "score": {
+          "median": 5290.250091552734,
+          "min": 5290.250091552734,
+          "max": 5290.250091552734
+        },
+        "seconds": {
+          "median": 0.7798079000003781,
+          "min": 0.7691114000008383,
+          "max": 0.7863378999991255
+        }
+      },
+      {
+        "case": "dogleg-dual-entrance",
+        "variant": "legacy-greedy",
+        "n": 3,
+        "outcomes": {
+          "valid": 3
+        },
+        "stalls": {
+          "median": 62,
+          "min": 62,
+          "max": 62
+        },
+        "score": {
+          "median": 5290.250091552734,
+          "min": 5290.250091552734,
+          "max": 5290.250091552734
+        },
+        "seconds": {
+          "median": 0.521313300001566,
+          "min": 0.5136108000006061,
+          "max": 0.5323173999986466
+        }
+      },
+      {
+        "case": "dogleg-dual-entrance",
+        "variant": "multi-cpsat",
+        "n": 3,
+        "outcomes": {
+          "valid": 3
+        },
+        "stalls": {
+          "median": 62,
+          "min": 62,
+          "max": 62
+        },
+        "score": {
+          "median": 5290.250091552734,
+          "min": 5290.250091552734,
+          "max": 5290.250091552734
+        },
+        "seconds": {
+          "median": 1.2694783000006282,
+          "min": 1.2651688999994803,
+          "max": 1.2745687999995425
+        }
+      },
+      {
+        "case": "dogleg-dual-entrance",
+        "variant": "multi-greedy",
+        "n": 3,
+        "outcomes": {
+          "valid": 3
+        },
+        "stalls": {
+          "median": 62,
+          "min": 62,
+          "max": 62
+        },
+        "score": {
+          "median": 5290.250091552734,
+          "min": 5290.250091552734,
+          "max": 5290.250091552734
+        },
+        "seconds": {
+          "median": 1.0011243999997532,
+          "min": 0.9859032000003936,
+          "max": 1.0046527999984391
+        }
+      },
+      {
+        "case": "dogleg-obstacle",
+        "variant": "legacy-cpsat",
+        "n": 3,
+        "outcomes": {
+          "valid": 3
+        },
+        "stalls": {
+          "median": 129,
+          "min": 129,
+          "max": 129
+        },
+        "score": {
+          "median": 10693.750431060791,
+          "min": 10693.750431060791,
+          "max": 10693.750431060791
+        },
+        "seconds": {
+          "median": 114.23952150000059,
+          "min": 113.8832108000006,
+          "max": 114.49292069999956
+        }
+      },
+      {
+        "case": "dogleg-obstacle",
+        "variant": "legacy-greedy",
+        "n": 3,
+        "outcomes": {
+          "valid": 3
+        },
+        "stalls": {
+          "median": 129,
+          "min": 129,
+          "max": 129
+        },
+        "score": {
+          "median": 10693.750431060791,
+          "min": 10693.750431060791,
+          "max": 10693.750431060791
+        },
+        "seconds": {
+          "median": 112.83448200000021,
+          "min": 112.09146790000068,
+          "max": 113.03876879999916
+        }
+      },
+      {
+        "case": "dogleg-obstacle",
+        "variant": "multi-cpsat",
+        "n": 3,
+        "outcomes": {
+          "valid": 3
+        },
+        "stalls": {
+          "median": 129,
+          "min": 129,
+          "max": 129
+        },
+        "score": {
+          "median": 10693.750431060791,
+          "min": 10693.750431060791,
+          "max": 10693.750431060791
+        },
+        "seconds": {
+          "median": 123.08104640000056,
+          "min": 122.83238220000021,
+          "max": 123.18839060000028
+        }
+      },
+      {
+        "case": "dogleg-obstacle",
+        "variant": "multi-greedy",
+        "n": 3,
+        "outcomes": {
+          "valid": 3
+        },
+        "stalls": {
+          "median": 129,
+          "min": 129,
+          "max": 129
+        },
+        "score": {
+          "median": 10693.750431060791,
+          "min": 10693.750431060791,
+          "max": 10693.750431060791
+        },
+        "seconds": {
+          "median": 120.67770509999991,
+          "min": 120.46911899999941,
+          "max": 121.40339200000017
+        }
+      },
+      {
+        "case": "dogleg-one-way-dual-entrance",
+        "variant": "legacy-cpsat",
+        "n": 3,
+        "outcomes": {
+          "valid": 3
+        },
+        "stalls": {
+          "median": 66,
+          "min": 66,
+          "max": 66
+        },
+        "score": {
+          "median": 6171.125,
+          "min": 6171.125,
+          "max": 6171.125
+        },
+        "seconds": {
+          "median": 0.7831533999997191,
+          "min": 0.769925599999624,
+          "max": 0.8012885000007373
+        }
+      },
+      {
+        "case": "dogleg-one-way-dual-entrance",
+        "variant": "legacy-greedy",
+        "n": 3,
+        "outcomes": {
+          "valid": 3
+        },
+        "stalls": {
+          "median": 66,
+          "min": 66,
+          "max": 66
+        },
+        "score": {
+          "median": 6171.125,
+          "min": 6171.125,
+          "max": 6171.125
+        },
+        "seconds": {
+          "median": 0.5284660999986954,
+          "min": 0.5225214999991294,
+          "max": 0.5522825000007288
+        }
+      },
+      {
+        "case": "dogleg-one-way-dual-entrance",
+        "variant": "multi-cpsat",
+        "n": 3,
+        "outcomes": {
+          "valid": 3
+        },
+        "stalls": {
+          "median": 66,
+          "min": 66,
+          "max": 66
+        },
+        "score": {
+          "median": 6171.125,
+          "min": 6171.125,
+          "max": 6171.125
+        },
+        "seconds": {
+          "median": 1.3047855000004347,
+          "min": 1.301206699999966,
+          "max": 1.3117375999991054
+        }
+      },
+      {
+        "case": "dogleg-one-way-dual-entrance",
+        "variant": "multi-greedy",
+        "n": 3,
+        "outcomes": {
+          "valid": 3
+        },
+        "stalls": {
+          "median": 66,
+          "min": 66,
+          "max": 66
+        },
+        "score": {
+          "median": 6171.125,
+          "min": 6171.125,
+          "max": 6171.125
+        },
+        "seconds": {
+          "median": 1.0260851999992155,
+          "min": 1.0151552000006632,
+          "max": 1.0280687000013131
+        }
+      },
+      {
+        "case": "dual-entrance",
+        "variant": "legacy-cpsat",
+        "n": 3,
+        "outcomes": {
+          "valid": 3
+        },
+        "stalls": {
+          "median": 30,
+          "min": 30,
+          "max": 30
+        },
+        "score": {
+          "median": 2585.0000038146973,
+          "min": 2585.0000038146973,
+          "max": 2585.0000038146973
+        },
+        "seconds": {
+          "median": 0.4068425000004936,
+          "min": 0.4059551999998803,
+          "max": 0.41159199999947305
+        }
+      },
+      {
+        "case": "dual-entrance",
+        "variant": "legacy-greedy",
+        "n": 3,
+        "outcomes": {
+          "valid": 3
+        },
+        "stalls": {
+          "median": 30,
+          "min": 30,
+          "max": 30
+        },
+        "score": {
+          "median": 2585.0000038146973,
+          "min": 2585.0000038146973,
+          "max": 2585.0000038146973
+        },
+        "seconds": {
+          "median": 0.13502489999973477,
+          "min": 0.12986499999988155,
+          "max": 0.1389939000000595
+        }
+      },
+      {
+        "case": "dual-entrance",
+        "variant": "multi-cpsat",
+        "n": 3,
+        "outcomes": {
+          "valid": 3
+        },
+        "stalls": {
+          "median": 30,
+          "min": 30,
+          "max": 30
+        },
+        "score": {
+          "median": 2585.0000038146973,
+          "min": 2585.0000038146973,
+          "max": 2585.0000038146973
+        },
+        "seconds": {
+          "median": 0.4251132999997935,
+          "min": 0.41940969999996014,
+          "max": 0.4267754000002242
+        }
+      },
+      {
+        "case": "dual-entrance",
+        "variant": "multi-greedy",
+        "n": 3,
+        "outcomes": {
+          "valid": 3
+        },
+        "stalls": {
+          "median": 30,
+          "min": 30,
+          "max": 30
+        },
+        "score": {
+          "median": 2585.0000038146973,
+          "min": 2585.0000038146973,
+          "max": 2585.0000038146973
+        },
+        "seconds": {
+          "median": 0.14086590000079013,
+          "min": 0.1342601000005743,
+          "max": 0.14567129999977624
+        }
+      },
+      {
+        "case": "end-loop",
+        "variant": "legacy-cpsat",
+        "n": 3,
+        "outcomes": {
+          "valid": 3
+        },
+        "stalls": {
+          "median": 82,
+          "min": 82,
+          "max": 82
+        },
+        "score": {
+          "median": 6438.400402069092,
+          "min": 6438.400402069092,
+          "max": 6438.400402069092
+        },
+        "seconds": {
+          "median": 33.03317900000002,
+          "min": 20.05976870000086,
+          "max": 45.886849800000164
+        }
+      },
+      {
+        "case": "end-loop",
+        "variant": "legacy-greedy",
+        "n": 3,
+        "outcomes": {
+          "valid": 3
+        },
+        "stalls": {
+          "median": 82,
+          "min": 82,
+          "max": 82
+        },
+        "score": {
+          "median": 6438.400402069092,
+          "min": 6438.400402069092,
+          "max": 6438.400402069092
+        },
+        "seconds": {
+          "median": 32.992385900000045,
+          "min": 22.722119400000338,
+          "max": 44.03671860000031
+        }
+      },
+      {
+        "case": "end-loop",
+        "variant": "multi-cpsat",
+        "n": 3,
+        "outcomes": {
+          "valid": 3
+        },
+        "stalls": {
+          "median": 105,
+          "min": 105,
+          "max": 105
+        },
+        "score": {
+          "median": 9075.000164031982,
+          "min": 9075.000164031982,
+          "max": 9075.000164031982
+        },
+        "seconds": {
+          "median": 49.554465100000016,
+          "min": 31.498393099999703,
+          "max": 49.556887599999754
+        }
+      },
+      {
+        "case": "end-loop",
+        "variant": "multi-greedy",
+        "n": 3,
+        "outcomes": {
+          "valid": 3
+        },
+        "stalls": {
+          "median": 82,
+          "min": 82,
+          "max": 82
+        },
+        "score": {
+          "median": 6438.400402069092,
+          "min": 6438.400402069092,
+          "max": 6438.400402069092
+        },
+        "seconds": {
+          "median": 48.3967732000001,
+          "min": 42.78821449999941,
+          "max": 49.743892999999844
+        }
+      },
+      {
+        "case": "irregular-courtyard",
+        "variant": "legacy-cpsat",
+        "n": 3,
+        "outcomes": {
+          "valid": 3
+        },
+        "stalls": {
+          "median": 30,
+          "min": 30,
+          "max": 30
+        },
+        "score": {
+          "median": 2008.8750328063963,
+          "min": 2008.8750328063963,
+          "max": 2008.8750328063963
+        },
+        "seconds": {
+          "median": 6.948446000000331,
+          "min": 6.943541100001312,
+          "max": 6.991118400001142
+        }
+      },
+      {
+        "case": "irregular-courtyard",
+        "variant": "legacy-greedy",
+        "n": 3,
+        "outcomes": {
+          "valid": 3
+        },
+        "stalls": {
+          "median": 30,
+          "min": 30,
+          "max": 30
+        },
+        "score": {
+          "median": 2008.8750328063963,
+          "min": 2008.8750328063963,
+          "max": 2008.8750328063963
+        },
+        "seconds": {
+          "median": 9.344776199999615,
+          "min": 5.0617796999995335,
+          "max": 9.469734599999356
+        }
+      },
+      {
+        "case": "irregular-courtyard",
+        "variant": "multi-cpsat",
+        "n": 3,
+        "outcomes": {
+          "valid": 3
+        },
+        "stalls": {
+          "median": 30,
+          "min": 30,
+          "max": 30
+        },
+        "score": {
+          "median": 2008.8750328063963,
+          "min": 2008.8750328063963,
+          "max": 2008.8750328063963
+        },
+        "seconds": {
+          "median": 4.253261800000473,
+          "min": 4.034844899999371,
+          "max": 4.312998199999129
+        }
+      },
+      {
+        "case": "irregular-courtyard",
+        "variant": "multi-greedy",
+        "n": 3,
+        "outcomes": {
+          "valid": 3
+        },
+        "stalls": {
+          "median": 30,
+          "min": 30,
+          "max": 30
+        },
+        "score": {
+          "median": 2008.8750328063963,
+          "min": 2008.8750328063963,
+          "max": 2008.8750328063963
+        },
+        "seconds": {
+          "median": 4.974495799999204,
+          "min": 4.878303100000267,
+          "max": 5.196499300000141
+        }
+      },
+      {
+        "case": "multi-jog-dual-entrance",
+        "variant": "legacy-cpsat",
+        "n": 3,
+        "outcomes": {
+          "valid": 3
+        },
+        "stalls": {
+          "median": 148,
+          "min": 148,
+          "max": 148
+        },
+        "score": {
+          "median": 11968.250061035156,
+          "min": 11968.250061035156,
+          "max": 11968.250061035156
+        },
+        "seconds": {
+          "median": 51.311031999999614,
+          "min": 51.2308524,
+          "max": 51.44340520000151
+        }
+      },
+      {
+        "case": "multi-jog-dual-entrance",
+        "variant": "legacy-greedy",
+        "n": 3,
+        "outcomes": {
+          "valid": 3
+        },
+        "stalls": {
+          "median": 148,
+          "min": 148,
+          "max": 148
+        },
+        "score": {
+          "median": 11968.250061035156,
+          "min": 11968.250061035156,
+          "max": 11968.250061035156
+        },
+        "seconds": {
+          "median": 50.25450439999986,
+          "min": 50.15211640000052,
+          "max": 50.49141939999936
+        }
+      },
+      {
+        "case": "multi-jog-dual-entrance",
+        "variant": "multi-cpsat",
+        "n": 3,
+        "outcomes": {
+          "valid": 3
+        },
+        "stalls": {
+          "median": 148,
+          "min": 148,
+          "max": 148
+        },
+        "score": {
+          "median": 11968.250061035156,
+          "min": 11968.250061035156,
+          "max": 11968.250061035156
+        },
+        "seconds": {
+          "median": 53.96419210000022,
+          "min": 53.870995799999946,
+          "max": 54.17220710000038
+        }
+      },
+      {
+        "case": "multi-jog-dual-entrance",
+        "variant": "multi-greedy",
+        "n": 3,
+        "outcomes": {
+          "valid": 3
+        },
+        "stalls": {
+          "median": 148,
+          "min": 148,
+          "max": 148
+        },
+        "score": {
+          "median": 11968.250061035156,
+          "min": 11968.250061035156,
+          "max": 11968.250061035156
+        },
+        "seconds": {
+          "median": 53.11964839999928,
+          "min": 51.1715707000003,
+          "max": 54.98821649999991
+        }
+      },
+      {
+        "case": "multi-jog-obstacle",
+        "variant": "legacy-cpsat",
+        "n": 3,
+        "outcomes": {
+          "valid": 3
+        },
+        "stalls": {
+          "median": 56,
+          "min": 56,
+          "max": 56
+        },
+        "score": {
+          "median": 4441.249908447266,
+          "min": 4441.249908447266,
+          "max": 4441.249908447266
+        },
+        "seconds": {
+          "median": 0.771555500001341,
+          "min": 0.7715074999996432,
+          "max": 0.7735159999992902
+        }
+      },
+      {
+        "case": "multi-jog-obstacle",
+        "variant": "legacy-greedy",
+        "n": 3,
+        "outcomes": {
+          "valid": 3
+        },
+        "stalls": {
+          "median": 56,
+          "min": 56,
+          "max": 56
+        },
+        "score": {
+          "median": 4441.249908447266,
+          "min": 4441.249908447266,
+          "max": 4441.249908447266
+        },
+        "seconds": {
+          "median": 0.5310337000009895,
+          "min": 0.5224483000001783,
+          "max": 0.5447817000003852
+        }
+      },
+      {
+        "case": "multi-jog-obstacle",
+        "variant": "multi-cpsat",
+        "n": 3,
+        "outcomes": {
+          "valid": 3
+        },
+        "stalls": {
+          "median": 56,
+          "min": 56,
+          "max": 56
+        },
+        "score": {
+          "median": 4441.249908447266,
+          "min": 4441.249908447266,
+          "max": 4441.249908447266
+        },
+        "seconds": {
+          "median": 1.0314104000008228,
+          "min": 1.0276530000010098,
+          "max": 1.0353221999994275
+        }
+      },
+      {
+        "case": "multi-jog-obstacle",
+        "variant": "multi-greedy",
+        "n": 3,
+        "outcomes": {
+          "valid": 3
+        },
+        "stalls": {
+          "median": 56,
+          "min": 56,
+          "max": 56
+        },
+        "score": {
+          "median": 4441.249908447266,
+          "min": 4441.249908447266,
+          "max": 4441.249908447266
+        },
+        "seconds": {
+          "median": 0.7600115000004735,
+          "min": 0.753449300000284,
+          "max": 0.7601171999995131
+        }
+      },
+      {
+        "case": "multi-jog-one-way-dual-entrance",
+        "variant": "legacy-cpsat",
+        "n": 3,
+        "outcomes": {
+          "valid": 3
+        },
+        "stalls": {
+          "median": 60,
+          "min": 60,
+          "max": 60
+        },
+        "score": {
+          "median": 5365.37516784668,
+          "min": 5365.37516784668,
+          "max": 5365.37516784668
+        },
+        "seconds": {
+          "median": 0.8477806999999302,
+          "min": 0.8472703999996156,
+          "max": 0.8739943000000494
+        }
+      },
+      {
+        "case": "multi-jog-one-way-dual-entrance",
+        "variant": "legacy-greedy",
+        "n": 3,
+        "outcomes": {
+          "valid": 3
+        },
+        "stalls": {
+          "median": 60,
+          "min": 60,
+          "max": 60
+        },
+        "score": {
+          "median": 5365.37516784668,
+          "min": 5365.37516784668,
+          "max": 5365.37516784668
+        },
+        "seconds": {
+          "median": 0.5983295000005455,
+          "min": 0.5941204999999172,
+          "max": 0.6223566999997274
+        }
+      },
+      {
+        "case": "multi-jog-one-way-dual-entrance",
+        "variant": "multi-cpsat",
+        "n": 3,
+        "outcomes": {
+          "valid": 3
+        },
+        "stalls": {
+          "median": 60,
+          "min": 60,
+          "max": 60
+        },
+        "score": {
+          "median": 5365.37516784668,
+          "min": 5365.37516784668,
+          "max": 5365.37516784668
+        },
+        "seconds": {
+          "median": 1.1609546999989107,
+          "min": 1.1477936999999656,
+          "max": 1.1652238999995461
+        }
+      },
+      {
+        "case": "multi-jog-one-way-dual-entrance",
+        "variant": "multi-greedy",
+        "n": 3,
+        "outcomes": {
+          "valid": 3
+        },
+        "stalls": {
+          "median": 60,
+          "min": 60,
+          "max": 60
+        },
+        "score": {
+          "median": 5365.37516784668,
+          "min": 5365.37516784668,
+          "max": 5365.37516784668
+        },
+        "seconds": {
+          "median": 0.8926554999998189,
+          "min": 0.8860488999998779,
+          "max": 0.8969442999987223
+        }
+      },
+      {
+        "case": "multi-spine-comparison",
+        "variant": "legacy-cpsat",
+        "n": 3,
+        "outcomes": {
+          "valid": 3
+        },
+        "stalls": {
+          "median": 65,
+          "min": 65,
+          "max": 65
+        },
+        "score": {
+          "median": 6500.0,
+          "min": 6500.0,
+          "max": 6500.0
+        },
+        "seconds": {
+          "median": 1.305582200000572,
+          "min": 1.27077780000036,
+          "max": 1.413530100000571
+        }
+      },
+      {
+        "case": "multi-spine-comparison",
+        "variant": "legacy-greedy",
+        "n": 3,
+        "outcomes": {
+          "valid": 3
+        },
+        "stalls": {
+          "median": 65,
+          "min": 65,
+          "max": 65
+        },
+        "score": {
+          "median": 6500.0,
+          "min": 6500.0,
+          "max": 6500.0
+        },
+        "seconds": {
+          "median": 1.121599399999468,
+          "min": 1.121022700001049,
+          "max": 1.1399982000002638
+        }
+      },
+      {
+        "case": "multi-spine-comparison",
+        "variant": "multi-cpsat",
+        "n": 3,
+        "outcomes": {
+          "valid": 3
+        },
+        "stalls": {
+          "median": 67,
+          "min": 67,
+          "max": 67
+        },
+        "score": {
+          "median": 6699.5,
+          "min": 6699.5,
+          "max": 6699.5
+        },
+        "seconds": {
+          "median": 1.9317919999994047,
+          "min": 1.9220908999996027,
+          "max": 1.9408595000004425
+        }
+      },
+      {
+        "case": "multi-spine-comparison",
+        "variant": "multi-greedy",
+        "n": 3,
+        "outcomes": {
+          "valid": 3
+        },
+        "stalls": {
+          "median": 67,
+          "min": 67,
+          "max": 67
+        },
+        "score": {
+          "median": 6699.5,
+          "min": 6699.5,
+          "max": 6699.5
+        },
+        "seconds": {
+          "median": 1.7830696000000898,
+          "min": 1.771183499999097,
+          "max": 1.9217313999997714
+        }
+      },
+      {
+        "case": "obstacle-offset",
+        "variant": "legacy-cpsat",
+        "n": 3,
+        "outcomes": {
+          "valid": 3
+        },
+        "stalls": {
+          "median": 28,
+          "min": 28,
+          "max": 28
+        },
+        "score": {
+          "median": 2024.5001487731934,
+          "min": 2024.5001487731934,
+          "max": 2024.5001487731934
+        },
+        "seconds": {
+          "median": 35.50737679999929,
+          "min": 33.28029459999925,
+          "max": 35.721171299999696
+        }
+      },
+      {
+        "case": "obstacle-offset",
+        "variant": "legacy-greedy",
+        "n": 3,
+        "outcomes": {
+          "valid": 3
+        },
+        "stalls": {
+          "median": 28,
+          "min": 28,
+          "max": 28
+        },
+        "score": {
+          "median": 2024.5001487731934,
+          "min": 2024.5001487731934,
+          "max": 2024.5001487731934
+        },
+        "seconds": {
+          "median": 35.01959889999944,
+          "min": 34.65007709999918,
+          "max": 35.42552329999944
+        }
+      },
+      {
+        "case": "obstacle-offset",
+        "variant": "multi-cpsat",
+        "n": 3,
+        "outcomes": {
+          "valid": 3
+        },
+        "stalls": {
+          "median": 28,
+          "min": 28,
+          "max": 28
+        },
+        "score": {
+          "median": 2024.5001487731934,
+          "min": 2024.5001487731934,
+          "max": 2024.5001487731934
+        },
+        "seconds": {
+          "median": 36.536288700000114,
+          "min": 36.53098629999931,
+          "max": 36.58725490000052
+        }
+      },
+      {
+        "case": "obstacle-offset",
+        "variant": "multi-greedy",
+        "n": 3,
+        "outcomes": {
+          "valid": 3
+        },
+        "stalls": {
+          "median": 28,
+          "min": 28,
+          "max": 28
+        },
+        "score": {
+          "median": 2024.5001487731934,
+          "min": 2024.5001487731934,
+          "max": 2024.5001487731934
+        },
+        "seconds": {
+          "median": 35.904161500000555,
+          "min": 35.8475798999998,
+          "max": 36.33418900000015
+        }
+      },
+      {
+        "case": "offset-gate-quota",
+        "variant": "legacy-cpsat",
+        "n": 3,
+        "outcomes": {
+          "invalid": 3
+        },
+        "stalls": {
+          "median": 0,
+          "min": 0,
+          "max": 0
+        },
+        "score": {
+          "median": 0.0,
+          "min": 0.0,
+          "max": 0.0
+        },
+        "seconds": {
+          "median": 0.3853726999986975,
+          "min": 0.38432819999979984,
+          "max": 0.3956570999998803
+        }
+      },
+      {
+        "case": "offset-gate-quota",
+        "variant": "legacy-greedy",
+        "n": 3,
+        "outcomes": {
+          "invalid": 3
+        },
+        "stalls": {
+          "median": 0,
+          "min": 0,
+          "max": 0
+        },
+        "score": {
+          "median": 0.0,
+          "min": 0.0,
+          "max": 0.0
+        },
+        "seconds": {
+          "median": 0.12314189999960945,
+          "min": 0.11765190000005532,
+          "max": 0.13426330000038433
+        }
+      },
+      {
+        "case": "offset-gate-quota",
+        "variant": "multi-cpsat",
+        "n": 3,
+        "outcomes": {
+          "invalid": 3
+        },
+        "stalls": {
+          "median": 0,
+          "min": 0,
+          "max": 0
+        },
+        "score": {
+          "median": 0.0,
+          "min": 0.0,
+          "max": 0.0
+        },
+        "seconds": {
+          "median": 0.4732956000007107,
+          "min": 0.45754609999858076,
+          "max": 0.49280410000028496
+        }
+      },
+      {
+        "case": "offset-gate-quota",
+        "variant": "multi-greedy",
+        "n": 3,
+        "outcomes": {
+          "invalid": 3
+        },
+        "stalls": {
+          "median": 0,
+          "min": 0,
+          "max": 0
+        },
+        "score": {
+          "median": 0.0,
+          "min": 0.0,
+          "max": 0.0
+        },
+        "seconds": {
+          "median": 0.18267940000077942,
+          "min": 0.18012400000043272,
+          "max": 0.1899451000008412
+        }
+      },
+      {
+        "case": "one-way-strip",
+        "variant": "legacy-cpsat",
+        "n": 3,
+        "outcomes": {
+          "valid": 3
+        },
+        "stalls": {
+          "median": 26,
+          "min": 26,
+          "max": 26
+        },
+        "score": {
+          "median": 2409.1000366210938,
+          "min": 2409.1000366210938,
+          "max": 2409.1000366210938
+        },
+        "seconds": {
+          "median": 0.390469199999643,
+          "min": 0.3836884000002101,
+          "max": 0.3962794999997641
+        }
+      },
+      {
+        "case": "one-way-strip",
+        "variant": "legacy-greedy",
+        "n": 3,
+        "outcomes": {
+          "valid": 3
+        },
+        "stalls": {
+          "median": 26,
+          "min": 26,
+          "max": 26
+        },
+        "score": {
+          "median": 2409.1000366210938,
+          "min": 2409.1000366210938,
+          "max": 2409.1000366210938
+        },
+        "seconds": {
+          "median": 0.11017080000056012,
+          "min": 0.10964580000018032,
+          "max": 0.11590929999965738
+        }
+      },
+      {
+        "case": "one-way-strip",
+        "variant": "multi-cpsat",
+        "n": 3,
+        "outcomes": {
+          "valid": 3
+        },
+        "stalls": {
+          "median": 26,
+          "min": 26,
+          "max": 26
+        },
+        "score": {
+          "median": 2409.1000366210938,
+          "min": 2409.1000366210938,
+          "max": 2409.1000366210938
+        },
+        "seconds": {
+          "median": 0.388867399999981,
+          "min": 0.3854306000002907,
+          "max": 0.3892495999998573
+        }
+      },
+      {
+        "case": "one-way-strip",
+        "variant": "multi-greedy",
+        "n": 3,
+        "outcomes": {
+          "valid": 3
+        },
+        "stalls": {
+          "median": 26,
+          "min": 26,
+          "max": 26
+        },
+        "score": {
+          "median": 2409.1000366210938,
+          "min": 2409.1000366210938,
+          "max": 2409.1000366210938
+        },
+        "seconds": {
+          "median": 0.11284040000009554,
+          "min": 0.11250699999982317,
+          "max": 0.11325879999913013
+        }
+      },
+      {
+        "case": "opposite-loop",
+        "variant": "legacy-cpsat",
+        "n": 3,
+        "outcomes": {
+          "valid": 3
+        },
+        "stalls": {
+          "median": 132,
+          "min": 132,
+          "max": 132
+        },
+        "score": {
+          "median": 11427.600402069093,
+          "min": 11427.600402069093,
+          "max": 11427.600402069093
+        },
+        "seconds": {
+          "median": 7.659710400000222,
+          "min": 7.377712200000133,
+          "max": 7.676029800000833
+        }
+      },
+      {
+        "case": "opposite-loop",
+        "variant": "legacy-greedy",
+        "n": 3,
+        "outcomes": {
+          "valid": 3
+        },
+        "stalls": {
+          "median": 132,
+          "min": 132,
+          "max": 132
+        },
+        "score": {
+          "median": 11427.600402069093,
+          "min": 11427.600402069093,
+          "max": 11427.600402069093
+        },
+        "seconds": {
+          "median": 18.179514800000106,
+          "min": 8.852286400000594,
+          "max": 19.103616200000033
+        }
+      },
+      {
+        "case": "opposite-loop",
+        "variant": "multi-cpsat",
+        "n": 3,
+        "outcomes": {
+          "valid": 3
+        },
+        "stalls": {
+          "median": 132,
+          "min": 132,
+          "max": 132
+        },
+        "score": {
+          "median": 11427.600402069093,
+          "min": 11427.600402069093,
+          "max": 11427.600402069093
+        },
+        "seconds": {
+          "median": 15.375077200000305,
+          "min": 9.105061200000819,
+          "max": 16.271575400000074
+        }
+      },
+      {
+        "case": "opposite-loop",
+        "variant": "multi-greedy",
+        "n": 3,
+        "outcomes": {
+          "valid": 3
+        },
+        "stalls": {
+          "median": 132,
+          "min": 132,
+          "max": 132
+        },
+        "score": {
+          "median": 11427.600402069093,
+          "min": 11427.600402069093,
+          "max": 11427.600402069093
+        },
+        "seconds": {
+          "median": 12.88577340000029,
+          "min": 8.603178299999854,
+          "max": 17.979018400000314
+        }
+      },
+      {
+        "case": "parallel-strip",
+        "variant": "legacy-cpsat",
+        "n": 3,
+        "outcomes": {
+          "valid": 3
+        },
+        "stalls": {
+          "median": 12,
+          "min": 12,
+          "max": 12
+        },
+        "score": {
+          "median": 792.6003570556641,
+          "min": 792.6003570556641,
+          "max": 792.6003570556641
+        },
+        "seconds": {
+          "median": 0.3536088999999265,
+          "min": 0.3455493999999817,
+          "max": 0.3551814000002196
+        }
+      },
+      {
+        "case": "parallel-strip",
+        "variant": "legacy-greedy",
+        "n": 3,
+        "outcomes": {
+          "valid": 3
+        },
+        "stalls": {
+          "median": 12,
+          "min": 12,
+          "max": 12
+        },
+        "score": {
+          "median": 792.6003570556641,
+          "min": 792.6003570556641,
+          "max": 792.6003570556641
+        },
+        "seconds": {
+          "median": 0.06933810000009544,
+          "min": 0.06613850000030652,
+          "max": 0.07179679999990185
+        }
+      },
+      {
+        "case": "parallel-strip",
+        "variant": "multi-cpsat",
+        "n": 3,
+        "outcomes": {
+          "valid": 3
+        },
+        "stalls": {
+          "median": 12,
+          "min": 12,
+          "max": 12
+        },
+        "score": {
+          "median": 792.6003570556641,
+          "min": 792.6003570556641,
+          "max": 792.6003570556641
+        },
+        "seconds": {
+          "median": 0.34867020000001503,
+          "min": 0.3423171000004004,
+          "max": 0.34991960000024847
+        }
+      },
+      {
+        "case": "parallel-strip",
+        "variant": "multi-greedy",
+        "n": 3,
+        "outcomes": {
+          "valid": 3
+        },
+        "stalls": {
+          "median": 12,
+          "min": 12,
+          "max": 12
+        },
+        "score": {
+          "median": 792.6003570556641,
+          "min": 792.6003570556641,
+          "max": 792.6003570556641
+        },
+        "seconds": {
+          "median": 0.07375779999983934,
+          "min": 0.07162129999960598,
+          "max": 0.07455840000056924
+        }
+      },
+      {
+        "case": "passing-bay-narrow",
+        "variant": "legacy-cpsat",
+        "n": 3,
+        "outcomes": {
+          "valid": 3
+        },
+        "stalls": {
+          "median": 46,
+          "min": 46,
+          "max": 46
+        },
+        "score": {
+          "median": 4200.300030517578,
+          "min": 4200.300030517578,
+          "max": 4200.300030517578
+        },
+        "seconds": {
+          "median": 0.49132100000133505,
+          "min": 0.48854900000151247,
+          "max": 0.5025760999997146
+        }
+      },
+      {
+        "case": "passing-bay-narrow",
+        "variant": "legacy-greedy",
+        "n": 3,
+        "outcomes": {
+          "valid": 3
+        },
+        "stalls": {
+          "median": 46,
+          "min": 46,
+          "max": 46
+        },
+        "score": {
+          "median": 4200.300030517578,
+          "min": 4200.300030517578,
+          "max": 4200.300030517578
+        },
+        "seconds": {
+          "median": 0.2370463999995991,
+          "min": 0.2340392999994947,
+          "max": 0.23738919999959762
+        }
+      },
+      {
+        "case": "passing-bay-narrow",
+        "variant": "multi-cpsat",
+        "n": 3,
+        "outcomes": {
+          "valid": 3
+        },
+        "stalls": {
+          "median": 46,
+          "min": 46,
+          "max": 46
+        },
+        "score": {
+          "median": 4200.300030517578,
+          "min": 4200.300030517578,
+          "max": 4200.300030517578
+        },
+        "seconds": {
+          "median": 0.49596679999922344,
+          "min": 0.49457799999981944,
+          "max": 0.509806899999603
+        }
+      },
+      {
+        "case": "passing-bay-narrow",
+        "variant": "multi-greedy",
+        "n": 3,
+        "outcomes": {
+          "valid": 3
+        },
+        "stalls": {
+          "median": 46,
+          "min": 46,
+          "max": 46
+        },
+        "score": {
+          "median": 4200.300030517578,
+          "min": 4200.300030517578,
+          "max": 4200.300030517578
+        },
+        "seconds": {
+          "median": 0.2436189000000013,
+          "min": 0.24252999999953317,
+          "max": 0.25151159999950323
+        }
+      },
+      {
+        "case": "phase0-site",
+        "variant": "legacy-cpsat",
+        "n": 3,
+        "outcomes": {
+          "valid": 3
+        },
+        "stalls": {
+          "median": 83,
+          "min": 83,
+          "max": 83
+        },
+        "score": {
+          "median": 7512.800384521484,
+          "min": 7512.800384521484,
+          "max": 7512.800384521484
+        },
+        "seconds": {
+          "median": 1.3108642999995936,
+          "min": 1.3049934999999095,
+          "max": 1.3404467999998815
+        }
+      },
+      {
+        "case": "phase0-site",
+        "variant": "legacy-greedy",
+        "n": 3,
+        "outcomes": {
+          "valid": 3
+        },
+        "stalls": {
+          "median": 83,
+          "min": 83,
+          "max": 83
+        },
+        "score": {
+          "median": 7512.800384521484,
+          "min": 7512.800384521484,
+          "max": 7512.800384521484
+        },
+        "seconds": {
+          "median": 1.2706694999997126,
+          "min": 1.2671141000000716,
+          "max": 1.301704399999835
+        }
+      },
+      {
+        "case": "phase0-site",
+        "variant": "multi-cpsat",
+        "n": 3,
+        "outcomes": {
+          "valid": 3
+        },
+        "stalls": {
+          "median": 83,
+          "min": 83,
+          "max": 83
+        },
+        "score": {
+          "median": 7512.800384521484,
+          "min": 7512.800384521484,
+          "max": 7512.800384521484
+        },
+        "seconds": {
+          "median": 1.3482617999998183,
+          "min": 1.3297671999998784,
+          "max": 1.377403399999821
+        }
+      },
+      {
+        "case": "phase0-site",
+        "variant": "multi-greedy",
+        "n": 3,
+        "outcomes": {
+          "valid": 3
+        },
+        "stalls": {
+          "median": 83,
+          "min": 83,
+          "max": 83
+        },
+        "score": {
+          "median": 7512.800384521484,
+          "min": 7512.800384521484,
+          "max": 7512.800384521484
+        },
+        "seconds": {
+          "median": 1.2619505000002391,
+          "min": 1.2548416999998153,
+          "max": 1.26978280000003
+        }
+      },
+      {
+        "case": "t-end",
+        "variant": "legacy-cpsat",
+        "n": 3,
+        "outcomes": {
+          "valid": 3
+        },
+        "stalls": {
+          "median": 2,
+          "min": 2,
+          "max": 2
+        },
+        "score": {
+          "median": -107.9499404907227,
+          "min": -107.9499404907227,
+          "max": -107.9499404907227
+        },
+        "seconds": {
+          "median": 0.32833929999924294,
+          "min": 0.32528800000000047,
+          "max": 0.35479399999985617
+        }
+      },
+      {
+        "case": "t-end",
+        "variant": "legacy-greedy",
+        "n": 3,
+        "outcomes": {
+          "valid": 3
+        },
+        "stalls": {
+          "median": 2,
+          "min": 2,
+          "max": 2
+        },
+        "score": {
+          "median": -107.9499404907227,
+          "min": -107.9499404907227,
+          "max": -107.9499404907227
+        },
+        "seconds": {
+          "median": 0.0460321999998996,
+          "min": 0.04496350000044913,
+          "max": 0.048118300000169256
+        }
+      },
+      {
+        "case": "t-end",
+        "variant": "multi-cpsat",
+        "n": 3,
+        "outcomes": {
+          "valid": 3
+        },
+        "stalls": {
+          "median": 2,
+          "min": 2,
+          "max": 2
+        },
+        "score": {
+          "median": -107.9499404907227,
+          "min": -107.9499404907227,
+          "max": -107.9499404907227
+        },
+        "seconds": {
+          "median": 0.3288738999999623,
+          "min": 0.32214699999985896,
+          "max": 0.33264779999990424
+        }
+      },
+      {
+        "case": "t-end",
+        "variant": "multi-greedy",
+        "n": 3,
+        "outcomes": {
+          "valid": 3
+        },
+        "stalls": {
+          "median": 2,
+          "min": 2,
+          "max": 2
+        },
+        "score": {
+          "median": -107.9499404907227,
+          "min": -107.9499404907227,
+          "max": -107.9499404907227
+        },
+        "seconds": {
+          "median": 0.04605390000051557,
+          "min": 0.04512960000010935,
+          "max": 0.047602099999494385
+        }
+      },
+      {
+        "case": "tight-rear-court",
+        "variant": "legacy-cpsat",
+        "n": 3,
+        "outcomes": {
+          "invalid": 3
+        },
+        "stalls": {
+          "median": 0,
+          "min": 0,
+          "max": 0
+        },
+        "score": {
+          "median": 0.0,
+          "min": 0.0,
+          "max": 0.0
+        },
+        "seconds": {
+          "median": 0.31571319999966363,
+          "min": 0.3136362999994162,
+          "max": 0.3287261000004946
+        }
+      },
+      {
+        "case": "tight-rear-court",
+        "variant": "legacy-greedy",
+        "n": 3,
+        "outcomes": {
+          "invalid": 3
+        },
+        "stalls": {
+          "median": 0,
+          "min": 0,
+          "max": 0
+        },
+        "score": {
+          "median": 0.0,
+          "min": 0.0,
+          "max": 0.0
+        },
+        "seconds": {
+          "median": 0.07863309999993362,
+          "min": 0.07768639999994775,
+          "max": 0.0829582999995182
+        }
+      },
+      {
+        "case": "tight-rear-court",
+        "variant": "multi-cpsat",
+        "n": 3,
+        "outcomes": {
+          "invalid": 3
+        },
+        "stalls": {
+          "median": 0,
+          "min": 0,
+          "max": 0
+        },
+        "score": {
+          "median": 0.0,
+          "min": 0.0,
+          "max": 0.0
+        },
+        "seconds": {
+          "median": 0.35337989999970887,
+          "min": 0.3430521999998746,
+          "max": 0.3887339000011707
+        }
+      },
+      {
+        "case": "tight-rear-court",
+        "variant": "multi-greedy",
+        "n": 3,
+        "outcomes": {
+          "invalid": 3
+        },
+        "stalls": {
+          "median": 0,
+          "min": 0,
+          "max": 0
+        },
+        "score": {
+          "median": 0.0,
+          "min": 0.0,
+          "max": 0.0
+        },
+        "seconds": {
+          "median": 0.08270879999872705,
+          "min": 0.07436740000048303,
+          "max": 0.08348839999962365
+        }
+      }
+    ]
+  },
+  "local_tests": {
+    "passed": 345,
+    "skipped": 0,
+    "seconds": 472.0,
+    "coverage_percent": 83.67739453776124,
+    "branch_coverage_enabled": true
+  },
+  "ci": {
+    "url": "https://github.com/helenananaa/OpenParkCAD/actions/runs/33736091918",
+    "head_sha": "67eec8b5274bf58e28b9ad1a73a34b134e0dbcc0",
+    "conclusion": "success",
+    "jobs": [
+      {
+        "name": "Python 3.12",
+        "conclusion": "success"
+      },
+      {
+        "name": "Python 3.12 optimizer",
+        "conclusion": "success"
+      },
+      {
+        "name": "Python 3.10",
+        "conclusion": "success"
+      }
+    ],
+    "default_dependency_tests": {
+      "passed": 337,
+      "skipped_optional_optimizer": 8,
+      "coverage_percent": 82.53
+    },
+    "optimizer_tests": {
+      "passed": 63,
+      "skipped": 0
+    }
+  },
+  "wheel": {
+    "filename": "openparkcad-0.3.0-py3-none-any.whl",
+    "sha256": "4723de8df59d0689eb54912e128381b773125606141e1a3cef9deea57bbfe73c",
+    "default": {
+      "stalls": 83,
+      "actual_backend": "greedy",
+      "ortools_absent_at_run": true
+    },
+    "optimizer": {
+      "stalls": 67,
+      "score": 6699.5,
+      "actual_backend": "cpsat",
+      "consistent_promotion": true
+    },
+    "rollback": {
+      "legacy_stalls": 65,
+      "promotion_off_stalls": 65,
+      "identical_official_geometry": true
+    }
+  },
+  "environment": {
+    "processor": [
+      {
+        "Name": "13th Gen Intel(R) Core(TM) i9-13900HX",
+        "NumberOfCores": 24,
+        "NumberOfLogicalProcessors": 32,
+        "LoadPercentage": 9
+      }
+    ],
+    "python": "3.12.7 | packaged by Anaconda, Inc. | (main, Oct  4 2024, 13:17:27) [MSC v.1929 64 bit (AMD64)]",
+    "parallel_load": "Full pytest and wheel verification finished before benchmark; no concurrent audit solve tasks"
+  },
+  "raw_evidence_directory": "output/verification/v0_4/20260903-164520-closure"
+}

@@ -1,0 +1,24 @@
+{
+  "version": "layout-benchmark-manifest-1",
+  "smoke_case_ids": ["phase0-site", "parallel-ladder-rect", "tight-rear-court"],
+  "notes": "v0.4 corpus plus N1 synthetic ladder cases. No licensed real CAD.",
+  "include_from": "benchmarks/layout_v0_4.json",
+  "extra_cases": [
+    {
+      "case_id": "parallel-ladder-tight-reject",
+      "path": "tests/fixtures/v0_5/parallel_ladder_tight_reject.json",
+      "provenance": "synthetic",
+      "tags": ["v0_5", "hard_reject", "development"],
+      "expectation": "valid_only_if_quotas_and_contacts_satisfied",
+      "required_checks": ["site", "engineering"]
+    },
+    {
+      "case_id": "parallel-ladder-turn-reject",
+      "path": "tests/fixtures/v0_5/parallel_ladder_turn_reject.json",
+      "provenance": "synthetic",
+      "tags": ["v0_5", "hard_reject", "holdout"],
+      "expectation": "valid_with_required_checks",
+      "required_checks": ["graph", "maneuver", "site", "engineering"]
+    }
+  ]
+}

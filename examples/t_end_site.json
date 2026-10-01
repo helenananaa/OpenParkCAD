@@ -1,0 +1,103 @@
+{
+  "version": "0.3",
+  "name": "t-end dead-end bay demo",
+  "units": "m",
+  "standards": {
+    "jurisdiction": "CN",
+    "standard_profile": "custom",
+    "strictness": "conservative",
+    "notes": "Main aisle with a bank of t_end stalls at the dead-end turnaround."
+  },
+  "site": {
+    "boundary": {
+      "type": "polygon",
+      "points": [[0, 0], [24, 0], [24, 42], [0, 42]]
+    },
+    "obstacles": [],
+    "reserved_areas": []
+  },
+  "site_features": [],
+  "entrances": [
+    {
+      "id": "main-gate",
+      "mode": "shared",
+      "center": [12, 0],
+      "width": 8.0,
+      "heading_degrees": 90,
+      "allowed_movements": ["enter", "exit"]
+    }
+  ],
+  "pedestrian_and_emergency": {
+    "pedestrian_routes": [],
+    "fire_lanes": [],
+    "emergency_access_required": false
+  },
+  "vehicles": {
+    "design_vehicle": {
+      "id": "passenger-car",
+      "length": 4.8,
+      "width": 1.9,
+      "wheelbase": 2.8,
+      "min_turning_radius": 5.5,
+      "turning_radius_reference": "outer_front_wheel",
+      "track_width": 1.6,
+      "front_overhang": 1.0,
+      "rear_overhang": 1.0,
+      "swept_path_margin": 0.3,
+      "max_reverse_distance": 12.0
+    }
+  },
+  "parking": {
+    "stall_types": [
+      {
+        "id": "t-end",
+        "family": "t_end",
+        "width": 2.5,
+        "length": 5.3,
+        "allowed_angles": [90],
+        "drive_over": false,
+        "access_sides": ["front"],
+        "enabled": true
+      }
+    ],
+    "quotas": {
+      "accessible_min": 0,
+      "ev_min": 0
+    }
+  },
+  "aisles": {
+    "selection_mode": "fixed",
+    "fixed_class": "wide-two-way-no-cross",
+    "classes": [
+      {
+        "id": "wide-two-way-no-cross",
+        "width": 6.0,
+        "capacity": "two_vehicle",
+        "directionality": "two_way",
+        "centerline_crossing": "forbidden",
+        "enabled": true
+      }
+    ]
+  },
+  "constraints": {
+    "setbacks": {
+      "site_boundary": 0.2
+    },
+    "maneuvering": {
+      "require_turning_radius_check": false,
+      "require_swept_path_check": false
+    }
+  },
+  "optimization": {
+    "heading_deltas_degrees": [0],
+    "entrance_offsets": [0],
+    "enable_branches": false,
+    "enable_connectors": false,
+    "enable_t_end_caps": false,
+    "promote_candidate_layout_preview": false,
+    "operational_quality_mode": "score_only"
+  },
+  "diagnostics": {
+    "include_unsupported_fields": true
+  }
+}

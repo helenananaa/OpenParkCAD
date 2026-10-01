@@ -1,0 +1,214 @@
+{
+  "version": "0.3",
+  "name": "Synthetic dense repair: l_shape",
+  "units": "m",
+  "standards": {
+    "jurisdiction": "unspecified",
+    "standard_profile": "project-policy-only",
+    "strictness": "conservative",
+    "notes": "Synthetic holdout case. Not a licensed site or constructability proof."
+  },
+  "site": {
+    "boundary": {
+      "type": "polygon",
+      "points": [
+        [
+          0,
+          0
+        ],
+        [
+          90,
+          0
+        ],
+        [
+          90,
+          28
+        ],
+        [
+          36,
+          28
+        ],
+        [
+          36,
+          72
+        ],
+        [
+          0,
+          72
+        ]
+      ]
+    },
+    "obstacles": [],
+    "reserved_areas": []
+  },
+  "entrances": [
+    {
+      "id": "west-south-gate",
+      "mode": "shared",
+      "center": [
+        18,
+        0
+      ],
+      "width": 8.0,
+      "heading_degrees": 90,
+      "allowed_movements": [
+        "enter",
+        "exit"
+      ]
+    }
+  ],
+  "vehicles": {
+    "design_vehicle": {
+      "id": "passenger-car",
+      "length": 4.8,
+      "width": 1.9,
+      "wheelbase": 2.8,
+      "min_turning_radius": 5.5,
+      "turning_radius_reference": "outer_front_wheel",
+      "track_width": 1.6,
+      "front_overhang": 1.0,
+      "rear_overhang": 1.0,
+      "swept_path_margin": 0.3,
+      "max_reverse_distance": 12.0
+    }
+  },
+  "parking": {
+    "stall_types": [
+      {
+        "id": "standard-90",
+        "family": "perpendicular",
+        "width": 2.5,
+        "length": 5.0,
+        "allowed_angles": [
+          90
+        ]
+      }
+    ]
+  },
+  "aisles": {
+    "selection_mode": "fixed",
+    "fixed_class": "wide-two-way-no-cross",
+    "classes": [
+      {
+        "id": "wide-two-way-no-cross",
+        "width": 6.0,
+        "capacity": "two_vehicle",
+        "directionality": "two_way"
+      }
+    ]
+  },
+  "constraints": {
+    "setbacks": {
+      "site_boundary": 0.0
+    },
+    "maneuvering": {
+      "require_turning_radius_check": true,
+      "require_swept_path_check": false,
+      "max_reverse_distance": 12.0
+    },
+    "road_traversal": {
+      "enabled": true,
+      "scope": "site_interior",
+      "time_budget_seconds": 60.0
+    }
+  },
+  "optimization": {
+    "objective": "balanced",
+    "heading_deltas_degrees": [
+      0
+    ],
+    "entrance_offsets": [
+      0
+    ],
+    "enable_branches": false,
+    "enable_connectors": false,
+    "enable_t_end_caps": false,
+    "promote_candidate_layout_preview": true,
+    "selector_backend": "cpsat",
+    "weights": {
+      "stall_count": 100,
+      "aisle_area": 0,
+      "dead_end_length": 0,
+      "branch_count": 0
+    },
+    "road_network": {
+      "enabled": true,
+      "families": [
+        "legacy",
+        "parallel_ladder"
+      ],
+      "max_skeletons": 1,
+      "dominant_axis_count": 1,
+      "max_parallel_aisles": 2,
+      "max_full_evaluations": 1,
+      "cross_aisle_policy": "both_ends",
+      "refinement_budget_seconds": 60.0,
+      "repair": {
+        "enabled": true,
+        "max_rounds": 3,
+        "time_budget_seconds": 60.0,
+        "min_retained_stalls": 10
+      }
+    }
+  },
+  "metadata": {
+    "author": "OpenParkCAD",
+    "coordinate_system": "local meters",
+    "fixture_provenance": "synthetic",
+    "v0_5": {
+      "source": "synthetic",
+      "case_id": "N-T02",
+      "kind": "positive",
+      "split": "holdout",
+      "scenario": "l_shape_second_wing",
+      "human_reference": "use both the west/north wing and the east wing; connect them with a limited orthogonal ladder rather than abandoning one wing",
+      "wings": {
+        "west_north": {
+          "x": [
+            0,
+            36
+          ],
+          "y": [
+            0,
+            72
+          ]
+        },
+        "east": {
+          "x": [
+            36,
+            90
+          ],
+          "y": [
+            0,
+            28
+          ]
+        }
+      },
+      "intended_road_network": {
+        "enabled": true,
+        "families": [
+          "legacy",
+          "parallel_ladder"
+        ],
+        "max_skeletons": 16,
+        "dominant_axis_count": 2,
+        "max_parallel_aisles": 6,
+        "cross_aisle_policy": "entry_end",
+        "allow_one_way_loop": false
+      }
+    },
+    "notes": "Entrance sits in the west wing. Current single spine travels north and leaves the east wing unused.",
+    "repair_split": "holdout",
+    "human_reference": "not_available",
+    "repair_source": "examples\\parallel_ladder_l_site.json"
+  },
+  "regression_expectations": {
+    "source": "synthetic",
+    "case_id": "N-T02",
+    "kind": "positive",
+    "split": "holdout",
+    "current_insufficient_when": "no published aisle overlaps the east wing with area >= 8 m2",
+    "solved_when": "at least one parallel_ladder candidate covers the east wing; stall placement is not required at N4",
+    "not_a_kpi": "absolute stall count is site-local, not a universal success metric"
+  }
+}

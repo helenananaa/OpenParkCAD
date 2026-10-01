@@ -1,0 +1,120 @@
+{
+  "version": "0.3",
+  "name": "opposite end-loop demo",
+  "units": "m",
+  "standards": {
+    "jurisdiction": "CN",
+    "standard_profile": "custom",
+    "strictness": "conservative",
+    "notes": "Wide parcel intended to form left/right branches and an opposite-side outer end loop."
+  },
+  "site": {
+    "boundary": {
+      "type": "polygon",
+      "points": [[0, 0], [90, 0], [90, 70], [0, 70]]
+    },
+    "obstacles": [
+      {
+        "id": "side-equipment",
+        "type": "building",
+        "geometry": {
+          "type": "polygon",
+          "points": [[72, 8], [82, 8], [82, 16], [72, 16]]
+        },
+        "clearance": 0.4
+      }
+    ],
+    "reserved_areas": []
+  },
+  "site_features": [],
+  "entrances": [
+    {
+      "id": "main-gate",
+      "mode": "shared",
+      "center": [40, 0],
+      "width": 8.0,
+      "heading_degrees": 90,
+      "allowed_movements": ["enter", "exit"]
+    }
+  ],
+  "pedestrian_and_emergency": {
+    "pedestrian_routes": [],
+    "fire_lanes": [],
+    "emergency_access_required": false
+  },
+  "vehicles": {
+    "design_vehicle": {
+      "id": "passenger-car",
+      "length": 4.8,
+      "width": 1.9,
+      "wheelbase": 2.8,
+      "min_turning_radius": 5.5,
+      "turning_radius_reference": "outer_front_wheel",
+      "track_width": 1.6,
+      "front_overhang": 1.0,
+      "rear_overhang": 1.0,
+      "swept_path_margin": 0.3,
+      "max_reverse_distance": 12.0
+    }
+  },
+  "parking": {
+    "stall_types": [
+      {
+        "id": "standard-90",
+        "family": "perpendicular",
+        "width": 2.5,
+        "length": 5.3,
+        "allowed_angles": [90],
+        "drive_over": false,
+        "access_sides": ["front"],
+        "enabled": true
+      }
+    ],
+    "quotas": {
+      "accessible_min": 0,
+      "ev_min": 0
+    }
+  },
+  "aisles": {
+    "selection_mode": "fixed",
+    "fixed_class": "wide-two-way-no-cross",
+    "classes": [
+      {
+        "id": "wide-two-way-no-cross",
+        "width": 6.0,
+        "capacity": "two_vehicle",
+        "directionality": "two_way",
+        "centerline_crossing": "forbidden",
+        "enabled": true
+      }
+    ]
+  },
+  "constraints": {
+    "setbacks": {
+      "site_boundary": 0.2
+    },
+    "maneuvering": {
+      "require_turning_radius_check": false,
+      "require_swept_path_check": false
+    }
+  },
+  "optimization": {
+    "heading_deltas_degrees": [0],
+    "entrance_offsets": [0],
+    "max_branches": 2,
+    "branch_sides": ["left", "right"],
+    "enable_branches": true,
+    "enable_connectors": true,
+    "enable_opposite_connectors": true,
+    "enable_opposite_end_loops": true,
+    "opposite_connector_align_tolerance": 20.0,
+    "prefer_loops": true,
+    "prefer_obstacle_clearance": true,
+    "enable_t_end_caps": false,
+    "promote_candidate_layout_preview": false,
+    "operational_quality_mode": "score_only"
+  },
+  "diagnostics": {
+    "include_unsupported_fields": true
+  }
+}

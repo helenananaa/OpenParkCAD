@@ -59,6 +59,47 @@ jobs:
           from pathlib import Path
 
           report = json.loads(Path("report.json").read_text(encoding="utf-8"))
-          assert report["operational_quality"]["version"] == "phase5q-1"
+          assert report["package_version"] == "0.3.0"
+          assert report["report_contract_version"] == "openparkcad-report-0.3"
+          assert report["engineering_validation"]["result_scope"] == "official_layout"
+          assert report["engineering_validation"]["valid"] is True
+          assert report["operational_quality"]["version"] == "phase5r-1"
           assert report["traffic_graph"]["validation"]["valid"] is True
           PY
+
+  optimizer:
+    name: Python 3.12 optimizer
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: pyproject.toml
+
+      - name: Install development and optimizer dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -e ".[dev,optimizer]"
+
+      - name: Import OR-Tools
+        run: |
+          python -c "from ortools.sat.python import cp_model; import ortools; print('OR-Tools', getattr(ortools, '__version__', 'unknown'))"
+
+      - name: CP-SAT success and selection tests
+        env:
+          OPENPARKCAD_REQUIRE_ORTOOLS: "1"
+        run: |
+          python -m pytest -q -rs \
+            tests/test_candidate_cpsat.py \
+            tests/test_selection_rebuild.py \
+            tests/test_stall_modules.py \
+            tests/test_mixed_segment_scoring.py \
+            tests/test_layout_search.py \
+            tests/test_layout_search_report.py \
+            tests/test_layout_benchmark.py \
+            tests/test_layout_search_integration.py

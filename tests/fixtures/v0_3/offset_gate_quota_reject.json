@@ -1,0 +1,200 @@
+{
+  "$schema": "../../../schema/openparkcad-input.schema.json",
+  "version": "0.3",
+  "name": "representative offset gate quota rejection",
+  "units": "m",
+  "standards": {
+    "jurisdiction": "unspecified",
+    "standard_profile": "project-policy-only",
+    "strictness": "conservative"
+  },
+  "site": {
+    "boundary": {
+      "type": "polygon",
+      "points": [[0, 0], [84, 0], [84, 49], [72, 49], [72, 57], [24, 57], [24, 53], [0, 53]]
+    },
+    "obstacles": [
+      {
+        "id": "transformer-pad",
+        "type": "equipment",
+        "geometry": {
+          "type": "polygon",
+          "points": [[68, 7], [75, 7], [75, 12], [68, 12]]
+        },
+        "clearance": 1.0,
+        "affects": ["stall", "aisle", "swept_path"],
+        "authority": "project_policy",
+        "priority": "hard"
+      }
+    ],
+    "reserved_areas": [
+      {
+        "id": "visitor-dropoff",
+        "type": "dropoff",
+        "geometry": {
+          "type": "polygon",
+          "points": [[4, 38], [18, 38], [18, 48], [4, 48]]
+        },
+        "affects": ["stall", "aisle"],
+        "authority": "project_policy",
+        "priority": "hard"
+      }
+    ]
+  },
+  "site_features": [
+    {
+      "id": "gate-controller",
+      "type": "gate_equipment",
+      "geometry": {
+        "type": "rectangle",
+        "origin": [14, 1],
+        "width": 0.8,
+        "height": 1.2,
+        "rotation_degrees": 0
+      },
+      "clearance": 0.4,
+      "affects": ["entrance_throat", "vehicle_clearance"],
+      "authority": "project_policy",
+      "priority": "hard"
+    }
+  ],
+  "entrances": [
+    {
+      "id": "south-west-shared-gate",
+      "mode": "shared",
+      "center": [13, 0],
+      "width": 7.5,
+      "heading_degrees": 90,
+      "allowed_movements": ["enter", "exit"]
+    }
+  ],
+  "pedestrian_and_emergency": {
+    "accessible_routes": [
+      {
+        "id": "west-accessible-route",
+        "type": "accessible_route",
+        "geometry": {
+          "type": "polyline_buffer",
+          "points": [[2, 2], [2, 50], [22, 50]],
+          "width": 1.8
+        },
+        "affects": ["stall", "swept_path"],
+        "authority": "project_policy",
+        "priority": "hard"
+      }
+    ],
+    "pedestrian_routes": [],
+    "fire_lanes": [],
+    "emergency_access_required": false
+  },
+  "vehicles": {
+    "design_vehicle": {
+      "id": "passenger-car-medium",
+      "length": 4.8,
+      "width": 1.9,
+      "wheelbase": 2.8,
+      "min_turning_radius": 5.5,
+      "turning_radius_reference": "outer_front_wheel",
+      "track_width": 1.6,
+      "front_overhang": 1.0,
+      "rear_overhang": 1.0,
+      "swept_path_margin": 0.25,
+      "max_reverse_distance": 12.0
+    }
+  },
+  "parking": {
+    "stall_types": [
+      {
+        "id": "standard-90",
+        "family": "perpendicular",
+        "width": 2.6,
+        "length": 5.4,
+        "allowed_angles": [90],
+        "drive_over": false,
+        "access_sides": ["front"],
+        "enabled": true
+      },
+      {
+        "id": "accessible-90",
+        "family": "perpendicular",
+        "width": 3.6,
+        "length": 5.4,
+        "allowed_angles": [90],
+        "drive_over": false,
+        "access_sides": ["front", "left"],
+        "classifications": ["accessible"],
+        "enabled": true
+      },
+      {
+        "id": "ev-accessible-90",
+        "family": "perpendicular",
+        "width": 3.6,
+        "length": 5.6,
+        "allowed_angles": [90],
+        "drive_over": false,
+        "access_sides": ["front", "left"],
+        "blocked_sides": ["back"],
+        "classifications": ["accessible", "ev"],
+        "enabled": true
+      }
+    ],
+    "quotas": {"accessible_min": 3, "ev_min": 2}
+  },
+  "aisles": {
+    "selection_mode": "fixed",
+    "fixed_class": "wide-two-way",
+    "classes": [
+      {
+        "id": "wide-two-way",
+        "width": 6.5,
+        "capacity": "two_vehicle",
+        "directionality": "two_way",
+        "centerline_crossing": "allowed",
+        "enabled": true
+      }
+    ]
+  },
+  "constraints": {
+    "authority": "project_policy",
+    "setbacks": {"site_boundary": 0.3, "obstacle": 0.5},
+    "circulation": {
+      "require_all_stalls_reachable": true,
+      "require_exit_path": true,
+      "allow_dead_end_aisles": false,
+      "allow_narrow_two_way": false
+    },
+    "maneuvering": {
+      "require_turning_radius_check": true,
+      "require_swept_path_check": true,
+      "max_reverse_distance": 12.0
+    }
+  },
+  "optimization": {
+    "objective": "conservative",
+    "heading_deltas_degrees": [0],
+    "entrance_offsets": [0],
+    "branch_start_positions": [28, 48],
+    "branch_sides": ["left"],
+    "max_branches": 2,
+    "enable_connectors": false,
+    "promote_candidate_layout_preview": false
+  },
+  "diagnostics": {
+    "explain_rejections": true,
+    "export_debug_layers": true,
+    "include_unsupported_fields": true,
+    "report_constraint_status": true
+  },
+  "metadata": {
+    "fixture_provenance": "synthetic_representative_real_site_shaped",
+    "coordinate_system": "local metres",
+    "notes": "Quota and route regression geometry only; not a survey or customer site."
+  },
+  "regression_expectations": {
+    "intended_outcome": "invalid_if_quotas_cannot_be_preserved",
+    "minimum_accessible_stalls": 3,
+    "minimum_ev_stalls": 2,
+    "qualifying_stall_identity_required_in_outputs": true,
+    "boundary_non_rectangular": true
+  }
+}

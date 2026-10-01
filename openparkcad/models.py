@@ -17,6 +17,21 @@ class StallSpec:
     drive_over: bool = False
     access_sides: tuple[str, ...] = ("front",)
     blocked_sides: tuple[str, ...] = ()
+    classifications: tuple[str, ...] = ()
+    fixed_features: tuple[dict[str, Any], ...] = ()
+
+
+@dataclass(frozen=True)
+class SiteAreaSpec:
+    id: str
+    kind: str
+    geometry: dict[str, Any]
+    clearance: float = 0.0
+    affects: tuple[str, ...] = ()
+    parking_allowed: bool = False
+    vehicle_allowed: bool = False
+    authority: str = "project_policy"
+    priority: str = "hard"
 
 
 @dataclass(frozen=True)
@@ -30,14 +45,39 @@ class EntranceSpec:
 
 
 @dataclass(frozen=True)
+class TrailerSpec:
+    length: float
+    width: float
+    wheelbase: float | None = None
+    track_width: float | None = None
+    front_overhang: float | None = None
+    rear_overhang: float | None = None
+
+
+@dataclass(frozen=True)
 class VehicleSpec:
     id: str = "passenger-car"
     length: float = 4.8
     width: float = 1.9
     wheelbase: float | None = None
     min_turning_radius: float | None = None
+    turning_radius_reference: str = "outer_front_wheel"
+    track_width: float | None = None
+    front_overhang: float | None = None
+    rear_overhang: float | None = None
     swept_path_margin: float = 0.0
     max_reverse_distance: float | None = None
+    configuration: str = "rigid"
+    hitch_offset: float | None = None
+    trailer: TrailerSpec | None = None
+
+
+def is_articulated_vehicle(vehicle: VehicleSpec | None) -> bool:
+    if vehicle is None:
+        return False
+    if vehicle.trailer is not None:
+        return True
+    return str(vehicle.configuration).strip().lower() == "articulated"
 
 
 @dataclass(frozen=True)
@@ -55,6 +95,8 @@ class SiteSpec:
     name: str
     boundary: Polygon
     obstacles: list[Polygon] = field(default_factory=list)
+    obstacle_specs: tuple[SiteAreaSpec, ...] = ()
+    reserved_areas: tuple[SiteAreaSpec, ...] = ()
     stall: StallSpec = field(default_factory=StallSpec)
     stall_candidates: tuple[StallSpec, ...] = field(default_factory=tuple)
     main_stall: StallSpec | None = None
@@ -73,6 +115,7 @@ class SiteSpec:
     fixed_aisle_class: str | None = None
     site_features: list[dict[str, Any]] = field(default_factory=list)
     pedestrian_and_emergency: dict[str, Any] = field(default_factory=dict)
+    parking_quotas: dict[str, int] = field(default_factory=dict)
     constraints: dict[str, Any] = field(default_factory=dict)
     optimization: dict[str, Any] = field(default_factory=dict)
     diagnostics: dict[str, Any] = field(default_factory=dict)
@@ -99,6 +142,7 @@ class ParkingAisle:
     connected_to_entrance_id: str | None = None
     parent_aisle_id: str | None = None
     connected_aisle_ids: tuple[str, ...] = ()
+    directionality: str = "two_way"
 
 
 @dataclass(frozen=True)
@@ -153,6 +197,9 @@ class LayoutResult:
     score: dict[str, float] = field(default_factory=dict)
     graph_validation: dict[str, Any] = field(default_factory=dict)
     maneuver_validation: dict[str, Any] = field(default_factory=dict)
+    site_constraint_validation: dict[str, Any] = field(default_factory=dict)
+    engineering_validation: dict[str, Any] = field(default_factory=dict)
+    road_traversal_validation: dict[str, Any] = field(default_factory=dict)
     operational_quality: dict[str, Any] = field(default_factory=dict)
     candidate_objects: list[CandidateObject] = field(default_factory=list)
     candidate_selection: dict[str, Any] = field(default_factory=dict)
@@ -160,6 +207,8 @@ class LayoutResult:
     candidate_layout_preview: dict[str, Any] = field(default_factory=dict)
     candidate_layout_promotion: dict[str, Any] = field(default_factory=dict)
     unsupported_phase1_inputs: list[dict[str, str]] = field(default_factory=list)
+    layout_search: dict[str, Any] = field(default_factory=dict)
+    through_corridor_report: dict[str, Any] = field(default_factory=dict)
 
     @property
     def stall_count(self) -> int:
@@ -189,12 +238,24 @@ def _phase0_site_from_dict(data: dict[str, Any]) -> SiteSpec:
     parking_data = _dict(data.get("parking", {}), "parking")
     aisles_data = _dict(data.get("aisles", {}), "aisles")
     constraints = _dict(data.get("constraints", {}), "constraints")
+    from openparkcad.road_traversal_models import parse_road_traversal_mapping
+
+    parse_road_traversal_mapping(constraints)
 
     boundary = _geometry_polygon(site_data["boundary"], "site.boundary")
-    obstacles = [
-        _obstacle_polygon(item, index)
+    obstacle_setback = float(_dict(constraints.get("setbacks", {}), "constraints.setbacks").get("obstacle", 0.0))
+    obstacle_specs = tuple(
+        _site_area_spec(item, index, "site.obstacles", default_clearance=obstacle_setback)
         for index, item in enumerate(site_data.get("obstacles", []), start=1)
+    )
+    obstacles = [
+        _geometry_polygon(item.geometry, f"site.obstacles[{index}].geometry")
+        for index, item in enumerate(obstacle_specs, start=1)
     ]
+    reserved_areas = tuple(
+        _site_area_spec(item, index, "site.reserved_areas")
+        for index, item in enumerate(site_data.get("reserved_areas", []), start=1)
+    )
 
     stall_candidates = _enabled_stall_specs(parking_data)
     stall = stall_candidates[0]
@@ -214,6 +275,8 @@ def _phase0_site_from_dict(data: dict[str, Any]) -> SiteSpec:
         standards=_dict(data.get("standards", {}), "standards"),
         boundary=boundary,
         obstacles=obstacles,
+        obstacle_specs=obstacle_specs,
+        reserved_areas=reserved_areas,
         stall=stall,
         stall_candidates=stall_candidates,
         aisle_width=aisle_width,
@@ -227,8 +290,9 @@ def _phase0_site_from_dict(data: dict[str, Any]) -> SiteSpec:
         fixed_aisle_class=str(fixed_aisle_class) if fixed_aisle_class else None,
         site_features=list(data.get("site_features", [])),
         pedestrian_and_emergency=_dict(data.get("pedestrian_and_emergency", {}), "pedestrian_and_emergency"),
+        parking_quotas=_parking_quotas(parking_data),
         constraints=constraints,
-        optimization=_dict(data.get("optimization", {}), "optimization"),
+        optimization=_optimization(_dict(data.get("optimization", {}), "optimization")),
         diagnostics=_dict(data.get("diagnostics", {}), "diagnostics"),
         metadata=_dict(data.get("metadata", {}), "metadata"),
         source_format="phase0",
@@ -243,6 +307,20 @@ def _dict(raw: Any, label: str) -> dict[str, Any]:
     return raw
 
 
+def _optimization(raw: dict[str, Any]) -> dict[str, Any]:
+    from openparkcad.candidate_catalog import parse_selector_num_workers
+    from openparkcad.layout_search import parse_layout_search_mapping
+    from openparkcad.road_network_config import parse_road_network_mapping
+
+    parse_selector_num_workers(raw)
+    parse_layout_search_mapping(raw)
+    if "road_network" in raw:
+        if raw["road_network"] is None:
+            raise ValueError("optimization.road_network must be an object")
+        parse_road_network_mapping(raw["road_network"])
+    return raw
+
+
 def _geometry_polygon(raw: Any, label: str) -> Polygon:
     if isinstance(raw, list):
         return _polygon(raw)
@@ -253,11 +331,45 @@ def _geometry_polygon(raw: Any, label: str) -> Polygon:
     raise ValueError(f"{label}.type={geometry_type!r} is documented but not implemented yet")
 
 
-def _obstacle_polygon(raw: Any, index: int) -> Polygon:
+def _site_area_spec(
+    raw: Any,
+    index: int,
+    label: str,
+    *,
+    default_clearance: float = 0.0,
+) -> SiteAreaSpec:
     if isinstance(raw, list):
-        return _polygon(raw)
-    item = _dict(raw, f"site.obstacles[{index}]")
-    return _geometry_polygon(item["geometry"], f"site.obstacles[{index}].geometry")
+        geometry = {"type": "polygon", "points": raw}
+        return SiteAreaSpec(
+            id=f"{label.rsplit('.', 1)[-1]}-{index}",
+            kind="obstacle",
+            geometry=geometry,
+            clearance=_nonnegative_float(default_clearance, f"{label}[{index}].clearance"),
+        )
+
+    item = _dict(raw, f"{label}[{index}]")
+    geometry = _dict(item.get("geometry"), f"{label}[{index}].geometry")
+    if not geometry:
+        raise ValueError(f"{label}[{index}].geometry must be provided")
+    declared_clearance = _nonnegative_float(
+        item.get("clearance", 0.0),
+        f"{label}[{index}].clearance",
+    )
+    minimum_clearance = _nonnegative_float(
+        default_clearance,
+        f"{label}[{index}].default_clearance",
+    )
+    return SiteAreaSpec(
+        id=str(item.get("id", f"{label.rsplit('.', 1)[-1]}-{index}")),
+        kind=str(item.get("type", "reserved" if label.endswith("reserved_areas") else "obstacle")),
+        geometry=geometry,
+        clearance=max(declared_clearance, minimum_clearance),
+        affects=tuple(str(value) for value in item.get("affects", [])),
+        parking_allowed=bool(item.get("parking_allowed", False)),
+        vehicle_allowed=bool(item.get("vehicle_allowed", False)),
+        authority=str(item.get("authority", "project_policy")),
+        priority=str(item.get("priority", "hard")),
+    )
 
 
 def _enabled_stall_specs(parking_data: dict[str, Any]) -> tuple[StallSpec, ...]:
@@ -277,7 +389,45 @@ def _stall_spec(data: dict[str, Any]) -> StallSpec:
         drive_over=bool(data.get("drive_over", False)),
         access_sides=tuple(str(item) for item in data.get("access_sides", ["front"])),
         blocked_sides=tuple(str(item) for item in data.get("blocked_sides", [])),
+        classifications=_stall_classifications(data),
+        fixed_features=tuple(
+            _dict(item, "parking.stall_types[].fixed_features[]")
+            for item in data.get("fixed_features", [])
+        ),
     )
+
+
+def _stall_classifications(data: dict[str, Any]) -> tuple[str, ...]:
+    raw = data.get("classifications", data.get("qualifications", data.get("tags", [])))
+    if isinstance(raw, str):
+        values = [raw]
+    elif isinstance(raw, list | tuple):
+        values = [str(item) for item in raw]
+    else:
+        raise ValueError("parking.stall_types[].classifications must be a string or array")
+    if data.get("accessible", False):
+        values.append("accessible")
+    if data.get("ev", False):
+        values.append("ev")
+    return tuple(dict.fromkeys(value.strip().lower() for value in values if value.strip()))
+
+
+def _parking_quotas(parking_data: dict[str, Any]) -> dict[str, int]:
+    raw = _dict(parking_data.get("quotas", {}), "parking.quotas")
+    quotas: dict[str, int] = {}
+    for key, value in raw.items():
+        number = _nonnegative_float(value, f"parking.quotas.{key}")
+        if not number.is_integer():
+            raise ValueError(f"parking.quotas.{key} must be a whole number")
+        quotas[str(key)] = int(number)
+    return quotas
+
+
+def _nonnegative_float(raw: Any, label: str) -> float:
+    value = float(raw)
+    if value < 0:
+        raise ValueError(f"{label} must be non-negative")
+    return value
 
 
 def _stall_candidate_angles(parking_data: dict[str, Any]) -> tuple[float, ...]:
@@ -329,12 +479,42 @@ def _entrance(raw: Any, index: int) -> EntranceSpec:
 
 def _vehicle(raw: Any) -> VehicleSpec:
     data = _dict(raw, "vehicles.design_vehicle")
+    trailer_raw = data.get("trailer")
+    trailer = _trailer(trailer_raw) if trailer_raw else None
+    default_configuration = "articulated" if trailer is not None else "rigid"
     return VehicleSpec(
         id=str(data.get("id", "passenger-car")),
         length=float(data.get("length", 4.8)),
         width=float(data.get("width", 1.9)),
         wheelbase=float(data["wheelbase"]) if "wheelbase" in data else None,
         min_turning_radius=float(data["min_turning_radius"]) if "min_turning_radius" in data else None,
+        turning_radius_reference=str(data.get("turning_radius_reference", "outer_front_wheel")),
+        track_width=float(data["track_width"]) if "track_width" in data else None,
+        front_overhang=float(data["front_overhang"]) if "front_overhang" in data else None,
+        rear_overhang=float(data["rear_overhang"]) if "rear_overhang" in data else None,
         swept_path_margin=float(data.get("swept_path_margin", 0.0)),
         max_reverse_distance=float(data["max_reverse_distance"]) if "max_reverse_distance" in data else None,
+        configuration=str(data.get("configuration", default_configuration)),
+        hitch_offset=_optional_float(data, "hitch_offset"),
+        trailer=trailer,
     )
+
+
+def _trailer(raw: Any) -> TrailerSpec:
+    data = _dict(raw, "vehicles.design_vehicle.trailer")
+    if "length" not in data or "width" not in data:
+        raise ValueError("vehicles.design_vehicle.trailer requires length and width")
+    return TrailerSpec(
+        length=float(data["length"]),
+        width=float(data["width"]),
+        wheelbase=_optional_float(data, "wheelbase"),
+        track_width=_optional_float(data, "track_width"),
+        front_overhang=_optional_float(data, "front_overhang"),
+        rear_overhang=_optional_float(data, "rear_overhang"),
+    )
+
+
+def _optional_float(data: dict[str, Any], key: str) -> float | None:
+    if key not in data or data[key] is None:
+        return None
+    return float(data[key])

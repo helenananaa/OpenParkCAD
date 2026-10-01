@@ -10,6 +10,7 @@ import tempfile
 from collections.abc import Callable
 from typing import Any
 
+from openparkcad import __version__
 from openparkcad.candidate_layout_preview import candidate_layout_preview_report
 from openparkcad.candidate_network_preview import candidate_network_preview_report
 from openparkcad.candidate_snapshot import candidate_snapshot_report
@@ -17,12 +18,14 @@ from openparkcad.diagnostics import build_input_diagnostics
 from openparkcad.exporter_dxf import write_dxf
 from openparkcad.exporter_svg import write_svg
 from openparkcad.generator import generate_layout
+from openparkcad.layout_search import layout_search_report
 from openparkcad.models import site_from_dict
 from openparkcad.traffic_graph import traffic_graph_report
 
 
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(prog="openparkcad")
+    parser.add_argument("--version", action="version", version=f"%(prog)s {__version__}")
     subparsers = parser.add_subparsers(dest="command", required=True)
 
     solve_parser = subparsers.add_parser("solve", help="Generate a parking layout for a site JSON file.")
@@ -30,11 +33,122 @@ def main(argv: list[str] | None = None) -> int:
     solve_parser.add_argument("--out", default="output/layout.dxf", help="DXF output path")
     solve_parser.add_argument("--preview", default="output/layout.svg", help="SVG preview path")
     solve_parser.add_argument("--report", default="output/report.json", help="JSON report path")
+    solve_parser.add_argument(
+        "--diagnostics",
+        default=None,
+        help="Optional independent rejection diagnostics path used only when no official layout is published.",
+    )
+
+    import_parser = subparsers.add_parser("import-dxf", help="Convert a support-range DXF into SiteSpec JSON without solving.")
+    import_parser.add_argument("dxf", help="Source DXF path")
+    import_parser.add_argument("--mapping", required=True, help="Layer and entrance-handle mapping JSON")
+    import_parser.add_argument("--defaults", required=True, help="Project defaults JSON (metres)")
+    import_parser.add_argument("--out", required=True, help="Output site JSON path")
+    import_parser.add_argument("--diagnostics", required=True, help="Import diagnostics JSON path")
+
+    solve_parser.add_argument(
+        "--source-coordinates",
+        action="store_true",
+        help="Write the DXF in recorded source CAD coordinates and units.",
+    )
+    solve_parser.add_argument(
+        "--review-bundle",
+        default=None,
+        help="Optional review-bundle-1 JSON written with the official output set.",
+    )
+    solve_parser.add_argument(
+        "--delivery-manifest",
+        default=None,
+        help="Optional delivery-manifest-1 JSON written with the official output set.",
+    )
+
+    view_parser = subparsers.add_parser("view", help="Write an offline HTML viewer for a review bundle.")
+    view_parser.add_argument("bundle", help="Path to a review-bundle-1 JSON file")
+    view_parser.add_argument("--out", required=True, help="Output HTML path")
 
     args = parser.parse_args(argv)
     if args.command == "solve":
         return _solve(args)
+    if args.command == "import-dxf":
+        return _import_dxf(args)
+    if args.command == "view":
+        return _view(args)
     raise ValueError(f"Unknown command: {args.command}")
+
+
+def _import_dxf(args: argparse.Namespace) -> int:
+    from openparkcad.cad_import import CadImportError, import_dxf_to_site, source_file_sha256
+
+    dxf_path = Path(args.dxf)
+    out_path = Path(args.out)
+    diagnostics_path = Path(args.diagnostics)
+    try:
+        _require_distinct_output_paths([out_path, diagnostics_path, dxf_path])
+    except ValueError as exc:
+        return _error(str(exc), exit_code=2)
+    before_hash = None
+    try:
+        before_hash = source_file_sha256(dxf_path)
+    except OSError as exc:
+        return _error(f"could not read DXF {dxf_path}: {exc}")
+    try:
+        site_json, diagnostics = import_dxf_to_site(dxf_path, args.mapping, args.defaults)
+    except FileNotFoundError as exc:
+        return _error(str(exc))
+    except CadImportError as exc:
+        try:
+            _write_json(diagnostics_path, exc.diagnostics)
+        except Exception as write_exc:
+            return _error(f"invalid DXF import: {exc}; could not write diagnostics: {write_exc}")
+        after_hash = source_file_sha256(dxf_path)
+        if after_hash != before_hash:
+            return _error("source DXF changed during a failed import", exit_code=4)
+        return _error(f"invalid DXF import: {exc}", exit_code=2)
+    except (KeyError, TypeError, ValueError, json.JSONDecodeError) as exc:
+        return _error(f"invalid import input: {exc}")
+    after_hash = source_file_sha256(dxf_path)
+    if after_hash != before_hash:
+        return _error("source DXF changed during import", exit_code=4)
+    try:
+        _write_json(out_path, site_json)
+        _write_json(diagnostics_path, diagnostics)
+    except Exception as exc:
+        return _error(f"could not write import outputs: {exc}", exit_code=4)
+    print(f"site: {out_path}")
+    print(f"diagnostics: {diagnostics_path}")
+    return 0
+
+
+def _write_json(path: Path, payload: dict[str, Any]) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(payload, indent=2), encoding="utf-8")
+
+
+def _write_review_bundle(layout, path: str | Path) -> None:
+    from openparkcad.review_bundle import build_review_bundle
+
+    _write_json(Path(path), build_review_bundle(layout, scope="official"))
+
+
+def _view(args: argparse.Namespace) -> int:
+    from openparkcad.viewer import write_review_html
+
+    bundle_path = Path(args.bundle)
+    out_path = Path(args.out)
+    try:
+        payload = json.loads(bundle_path.read_text(encoding="utf-8"))
+    except FileNotFoundError:
+        return _error(f"review bundle not found: {bundle_path}")
+    except json.JSONDecodeError as exc:
+        return _error(f"invalid review bundle JSON: {exc}")
+    if not isinstance(payload, dict) or payload.get("version") != "review-bundle-1":
+        return _error("review bundle version must be review-bundle-1")
+    try:
+        write_review_html(payload, out_path)
+    except Exception as exc:
+        return _error(f"could not write viewer: {exc}", exit_code=4)
+    print(f"viewer: {out_path}")
+    return 0
 
 
 def _solve(args: argparse.Namespace) -> int:
@@ -53,6 +167,9 @@ def _solve(args: argparse.Namespace) -> int:
 
     try:
         site = site_from_dict(data)
+        from openparkcad.rule_profiles import profile_from_site
+
+        profile_from_site(site)
     except (KeyError, TypeError, ValueError) as exc:
         return _error(f"invalid site input: {exc}")
 
@@ -63,14 +180,40 @@ def _solve(args: argparse.Namespace) -> int:
 
     validation_errors = _final_layout_errors(layout)
     if validation_errors:
-        return _error(f"no valid final layout: {'; '.join(validation_errors)}", exit_code=3)
+        diagnostics_error = None
+        if args.diagnostics:
+            try:
+                extra_paths = [Path(args.out), Path(args.preview), Path(args.report)]
+                if args.review_bundle:
+                    extra_paths.append(Path(args.review_bundle))
+                _write_rejection_diagnostics(
+                    layout,
+                    Path(args.diagnostics),
+                    validation_errors,
+                    official_paths=extra_paths,
+                )
+            except Exception as exc:
+                diagnostics_error = f"could not write diagnostics: {exc}"
+        message = f"no valid final layout: {'; '.join(validation_errors)}"
+        if diagnostics_error:
+            message = f"{message}; {diagnostics_error}"
+        return _error(message, exit_code=3)
 
+    official_paths = [Path(args.out), Path(args.preview), Path(args.report)]
+    review_bundle_path = Path(args.review_bundle) if args.review_bundle else None
+    delivery_manifest_path = Path(args.delivery_manifest) if args.delivery_manifest else None
+    extra_paths = [path for path in (review_bundle_path, delivery_manifest_path) if path is not None]
     try:
+        _require_distinct_output_paths([*official_paths, *extra_paths])
         _write_output_set(
             layout,
-            dxf_path=Path(args.out),
-            svg_path=Path(args.preview),
-            report_path=Path(args.report),
+            dxf_path=official_paths[0],
+            svg_path=official_paths[1],
+            report_path=official_paths[2],
+            restore_source_coordinates=bool(getattr(args, "source_coordinates", False)),
+            review_bundle_path=review_bundle_path,
+            delivery_manifest_path=delivery_manifest_path,
+            input_bytes=site_path.read_bytes() if delivery_manifest_path is not None else None,
         )
     except Exception as exc:
         return _error(f"could not write outputs: {exc}", exit_code=4)
@@ -80,6 +223,10 @@ def _solve(args: argparse.Namespace) -> int:
     print(f"dxf: {args.out}")
     print(f"preview: {args.preview}")
     print(f"report: {args.report}")
+    if args.review_bundle:
+        print(f"review-bundle: {args.review_bundle}")
+    if args.delivery_manifest:
+        print(f"delivery-manifest: {args.delivery_manifest}")
     return 0
 
 
@@ -87,11 +234,17 @@ def _write_report(layout, path: str | Path) -> None:
     target = Path(path)
     target.parent.mkdir(parents=True, exist_ok=True)
     data = {
+        "report_contract_version": "openparkcad-report-0.3",
+        "package_version": __version__,
         "site": layout.site.name,
         "stall_count": layout.stall_count,
         "aisle_count": len(layout.aisles),
         "generation_mode": layout.generation_mode,
         "main_entrance_id": layout.main_entrance_id,
+        "exit_entrance_id": next(
+            (aisle.connected_to_entrance_id for aisle in layout.aisles if aisle.role == "exit" and aisle.connected_to_entrance_id),
+            None,
+        ),
         "selected_angle_degrees": layout.selected_angle_degrees,
         "selected_heading_degrees": layout.selected_heading_degrees,
         "selected_heading_delta_degrees": layout.selected_heading_delta_degrees,
@@ -113,18 +266,27 @@ def _write_report(layout, path: str | Path) -> None:
         "candidate_layout_preview": candidate_layout_preview_report(layout),
         "candidate_layout_promotion": layout.candidate_layout_promotion,
         "maneuver_validation": layout.maneuver_validation,
+        "site_constraint_validation": getattr(layout, "site_constraint_validation", {}),
+        "engineering_validation": getattr(layout, "engineering_validation", {}),
+        "road_traversal_validation": getattr(layout, "road_traversal_validation", {}),
         "operational_quality": layout.operational_quality,
         "unsupported_phase1_inputs": layout.unsupported_phase1_inputs,
         "aisles": [
             {
                 "id": aisle.id,
                 "role": aisle.role,
+                "directionality": aisle.directionality,
                 "connected_to_entrance_id": aisle.connected_to_entrance_id,
                 "parent_aisle_id": aisle.parent_aisle_id,
                 "connected_aisle_ids": list(aisle.connected_aisle_ids),
             }
             for aisle in layout.aisles
         ],
+        "aisle_directionality": (
+            layout.graph_validation.get("aisle_directionality")
+            if isinstance(layout.graph_validation, dict)
+            else None
+        ),
         "stalls": [
             {
                 "id": stall.id,
@@ -150,13 +312,11 @@ def _write_report(layout, path: str | Path) -> None:
             }
             for attempt in layout.attempts
         ],
-        "stall": {
-            "id": layout.site.stall.id,
-            "family": layout.site.stall.family,
-            "width": layout.site.stall.width,
-            "length": layout.site.stall.length,
-            "allowed_angles": list(layout.site.stall.allowed_angles),
-        },
+        "stall": _stall_spec_report(layout.site.stall),
+        "stall_types": [
+            _stall_spec_report(stall)
+            for stall in (layout.site.stall_candidates or (layout.site.stall,))
+        ],
         "stall_assignment": {
             "main": _stall_spec_report(layout.site.main_stall or layout.site.stall),
             "branch": _stall_spec_report(layout.site.branch_stall or layout.site.main_stall or layout.site.stall),
@@ -165,6 +325,8 @@ def _write_report(layout, path: str | Path) -> None:
         "aisle_width": layout.site.aisle_width,
         "traffic_graph": traffic_graph_report(layout),
         "input_diagnostics": build_input_diagnostics(layout.site, layout),
+        "layout_search": layout_search_report(layout),
+        "rule_profile": _rule_profile_record(layout),
     }
     target.write_text(json.dumps(data, indent=2), encoding="utf-8")
 
@@ -186,34 +348,91 @@ def _final_layout_errors(layout) -> list[str]:
             f"maneuver validation failed{f' ({invalid_count} invalid stalls)' if invalid_count else ''}"
         )
 
+    site_constraint_validation = getattr(layout, "site_constraint_validation", {"valid": True})
+    if not site_constraint_validation.get("valid", False):
+        site_errors = site_constraint_validation.get("errors", [])
+        errors.append(
+            "site constraint validation failed"
+            f"{f' ({len(site_errors)} errors)' if isinstance(site_errors, list) and site_errors else ''}"
+        )
+
+    engineering_validation = getattr(layout, "engineering_validation", {})
+    if engineering_validation and not engineering_validation.get("valid", False):
+        failed_rules = engineering_validation.get("rules", {}).get("failed", [])
+        errors.append(
+            "engineering validation failed"
+            f"{f' ({len(failed_rules)} failed rules)' if isinstance(failed_rules, list) and failed_rules else ''}"
+        )
+
     operational_quality = layout.operational_quality
     if not operational_quality.get("valid", False):
         risk_score = operational_quality.get("risk_score")
         errors.append(
             f"operational quality hard rejection{f' (risk score {risk_score:g})' if isinstance(risk_score, int | float) else ''}"
         )
+
+    from openparkcad.road_traversal import road_traversal_publication_error
+
+    road_error = road_traversal_publication_error(layout)
+    if road_error:
+        errors.append(road_error)
     return errors
 
 
-def _write_output_set(layout, dxf_path: Path, svg_path: Path, report_path: Path) -> None:
+def _write_output_set(
+    layout,
+    dxf_path: Path,
+    svg_path: Path,
+    report_path: Path,
+    *,
+    restore_source_coordinates: bool = False,
+    review_bundle_path: Path | None = None,
+    delivery_manifest_path: Path | None = None,
+    input_bytes: bytes | None = None,
+) -> None:
+    def _dxf(current, path: str | Path) -> None:
+        write_dxf(current, path, restore_source_coordinates=restore_source_coordinates)
+
     outputs: list[tuple[Path, Callable[[Any, str | Path], None]]] = [
-        (dxf_path, write_dxf),
+        (dxf_path, _dxf),
         (svg_path, write_svg),
         (report_path, _write_report),
     ]
-    _require_distinct_output_paths([target for target, _ in outputs])
+    if review_bundle_path is not None:
+        outputs.append((review_bundle_path, _write_review_bundle))
+    hash_targets: dict[str, Path] = {"dxf": dxf_path, "svg": svg_path, "report": report_path}
+    if review_bundle_path is not None:
+        hash_targets["review_bundle"] = review_bundle_path
+    commit_paths = [target for target, _ in outputs]
+    if delivery_manifest_path is not None:
+        commit_paths.append(delivery_manifest_path)
+    _require_distinct_output_paths(commit_paths)
 
     temporary_paths: dict[Path, Path] = {}
     backup_paths: dict[Path, Path] = {}
     try:
-        for target, _ in outputs:
+        for target in commit_paths:
             target.parent.mkdir(parents=True, exist_ok=True)
             temporary_paths[target] = _temporary_sibling(target, suffix=".tmp")
 
         for target, writer in outputs:
             writer(layout, temporary_paths[target])
 
-        for target, _ in outputs:
+        if delivery_manifest_path is not None:
+            from openparkcad.delivery_manifest import build_delivery_manifest
+
+            hash_from = {name: temporary_paths[path] for name, path in hash_targets.items()}
+            _write_json(
+                temporary_paths[delivery_manifest_path],
+                build_delivery_manifest(
+                    layout,
+                    input_bytes=input_bytes,
+                    output_paths=hash_targets,
+                    hash_from=hash_from,
+                ),
+            )
+
+        for target in commit_paths:
             if target.is_file():
                 backup = _temporary_sibling(target, suffix=".bak")
                 shutil.copy2(target, backup)
@@ -221,7 +440,7 @@ def _write_output_set(layout, dxf_path: Path, svg_path: Path, report_path: Path)
 
         committed: list[Path] = []
         try:
-            for target, _ in outputs:
+            for target in commit_paths:
                 os.replace(temporary_paths[target], target)
                 committed.append(target)
         except Exception:
@@ -245,6 +464,37 @@ def _require_distinct_output_paths(paths: list[Path]) -> None:
         raise ValueError("DXF, SVG, and report output paths must be different")
 
 
+def _write_rejection_diagnostics(
+    layout,
+    path: Path,
+    validation_errors: list[str],
+    *,
+    official_paths: list[Path],
+) -> None:
+    _require_distinct_output_paths([*official_paths, path])
+    path.parent.mkdir(parents=True, exist_ok=True)
+    payload = {
+        "diagnostics_contract_version": "openparkcad-rejection-diagnostics-1",
+        "official_layout_published": False,
+        "errors": validation_errors,
+        "road_traversal_validation": getattr(layout, "road_traversal_validation", {}),
+        "engineering_validation": getattr(layout, "engineering_validation", {}),
+        "graph_validation": getattr(layout, "graph_validation", {}),
+        "maneuver_validation": getattr(layout, "maneuver_validation", {}),
+        "site_constraint_validation": getattr(layout, "site_constraint_validation", {}),
+        "stall_ids": [stall.id for stall in layout.stalls],
+        "aisle_ids": [aisle.id for aisle in layout.aisles],
+        "layout_identity": (layout.road_traversal_validation or {}).get("layout_identity")
+        if isinstance(getattr(layout, "road_traversal_validation", None), dict)
+        else None,
+    }
+    if getattr(layout, "site", None) is not None:
+        from openparkcad.review_bundle import build_review_bundle
+
+        payload["review_bundle"] = build_review_bundle(layout, scope="diagnostics")
+    path.write_text(json.dumps(payload, indent=2), encoding="utf-8")
+
+
 def _temporary_sibling(target: Path, suffix: str) -> Path:
     descriptor, raw_path = tempfile.mkstemp(
         prefix=f".{target.name}.",
@@ -260,6 +510,12 @@ def _error(message: str, exit_code: int = 2) -> int:
     return exit_code
 
 
+def _rule_profile_record(layout) -> dict[str, Any]:
+    from openparkcad.rule_profiles import profile_from_site
+
+    return profile_from_site(layout.site).to_record()
+
+
 def _stall_spec_report(stall) -> dict[str, object]:
     return {
         "id": stall.id,
@@ -267,6 +523,11 @@ def _stall_spec_report(stall) -> dict[str, object]:
         "width": stall.width,
         "length": stall.length,
         "allowed_angles": list(stall.allowed_angles),
+        "classifications": list(stall.classifications),
+        "fixed_features": list(stall.fixed_features),
+        "drive_over": stall.drive_over,
+        "access_sides": list(stall.access_sides),
+        "blocked_sides": list(stall.blocked_sides),
     }
 
 

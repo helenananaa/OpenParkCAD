@@ -1,0 +1,22 @@
+{
+  "version": "layout-benchmark-manifest-1",
+  "smoke_case_ids": ["road-through-pass", "phase0-unrequested"],
+  "cases": [
+    {
+      "case_id": "road-through-pass",
+      "path": "tests/fixtures/road_traversal/through_pass.json",
+      "provenance": "synthetic",
+      "tags": ["road_traversal", "pass"],
+      "expectation": "valid_with_required_checks",
+      "required_checks": ["graph", "maneuver", "site", "engineering", "operational", "road_traversal"]
+    },
+    {
+      "case_id": "phase0-unrequested",
+      "path": "examples/phase0_site.json",
+      "provenance": "synthetic",
+      "tags": ["road_traversal", "compat"],
+      "expectation": "valid_with_required_checks",
+      "required_checks": ["graph", "maneuver", "vehicle", "site", "engineering", "operational"]
+    }
+  ]
+}

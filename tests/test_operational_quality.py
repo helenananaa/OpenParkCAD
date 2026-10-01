@@ -219,7 +219,7 @@ def _narrow_two_way_branch_layout(optimization: dict | None = None) -> LayoutRes
 def test_phase5q_operational_quality_reports_junction_stall_conflicts():
     report = operational_quality_report(_quality_layout())
 
-    assert report["version"] == "phase5q-1"
+    assert report["version"] == "phase5r-1"
     assert report["status"] == "report_only"
     assert report["mode"] == "score_only"
     assert report["valid"] is True
@@ -809,3 +809,72 @@ def test_phase5g_operational_risk_penalty_is_scoreable():
     assert score["operational_risk"] == 1.0
     assert score["operational_risk_penalty"] == -2.0
     assert score["total"] == -2.0
+
+
+def test_pedestrian_conflict_not_applicable_without_walkways():
+    report = operational_quality_report(_quality_layout())
+
+    assert report["pedestrian_conflict_risks"]["status"] == "not_applicable"
+    assert report["pedestrian_conflict_risk_score"] == 0.0
+    assert report["risk_score"] == 1.0
+
+
+def test_stall_near_walkway_scores_when_risk_weight_is_set():
+    site = SiteSpec(
+        name="pedestrian-conflict",
+        boundary=[(0, 0), (24, 0), (24, 24), (0, 24)],
+        stall=StallSpec(width=2.5, length=5.0, allowed_angles=(90.0,)),
+        aisle_width=6.0,
+        margin=0.0,
+        pedestrian_and_emergency={
+            "pedestrian_routes": [
+                {
+                    "id": "east-walk",
+                    "geometry": {"type": "polyline_buffer", "points": [[16, 8], [22, 8]], "width": 0.5},
+                    "parking_allowed": True,
+                    "vehicle_allowed": True,
+                    "priority": "advisory",
+                }
+            ]
+        },
+        optimization={
+            "operational_pedestrian_conflict_clearance": 1.0,
+            "operational_pedestrian_conflict_risk": 2.0,
+        },
+    )
+    layout = _quality_layout(site)
+    report = operational_quality_report(layout)
+
+    assert report["pedestrian_conflict_risks"]["status"] == "report_only"
+    assert report["pedestrian_conflict_summary"]["stall_near_count"] >= 1
+    assert any(
+        item["kind"] == "stall_near_pedestrian_route" and item["stall_id"] == "P-001"
+        for item in report["pedestrian_conflict_risks"]["issues"]
+    )
+    assert report["pedestrian_conflict_risk_score"] == report["pedestrian_conflict_risk_count"] * 2.0
+    assert report["risk_score"] == 1.0 + report["pedestrian_conflict_risk_score"]
+
+
+def test_aisle_crossing_walkway_is_reported():
+    site = SiteSpec(
+        name="pedestrian-cross",
+        boundary=[(0, 0), (24, 0), (24, 24), (0, 24)],
+        stall=StallSpec(width=2.5, length=5.0, allowed_angles=(90.0,)),
+        aisle_width=6.0,
+        pedestrian_and_emergency={
+            "pedestrian_routes": [
+                {
+                    "id": "crosswalk",
+                    "geometry": {"type": "polyline_buffer", "points": [[0, 7], [20, 7]], "width": 1.0},
+                    "parking_allowed": True,
+                    "vehicle_allowed": True,
+                    "priority": "advisory",
+                }
+            ]
+        },
+        optimization={"operational_pedestrian_conflict_risk": 1.0},
+    )
+    report = operational_quality_report(_quality_layout(site))
+
+    assert report["pedestrian_conflict_summary"]["aisle_cross_count"] >= 1
+    assert any(item["kind"] == "aisle_crosses_pedestrian_route" for item in report["pedestrian_conflict_risks"]["issues"])
